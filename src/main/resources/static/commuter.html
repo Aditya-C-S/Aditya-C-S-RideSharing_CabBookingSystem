@@ -148,7 +148,7 @@
   </ul>
   <div class="nav-right">
     <span class="badge-role">Commuter</span>
-    <div class="avatar">RK</div>
+    <div class="avatar" onclick="logout()" title="Logout" style="cursor:pointer">CM</div>
   </div>
 </nav>
 
@@ -277,7 +277,9 @@
                 <div class="step-label"><strong>Process Payment</strong><span id="step-pay-sub">Waiting...</span></div>
               </div>
             </div>
-
+            <button id="cancel-btn" onclick="cancelRide()" style="display:none;width:100%;margin-top:10px;padding:10px;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.2);border-radius:10px;color:var(--red);font-family:'DM Sans',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;">
+              ✕ Cancel Ride
+            </button>
             <!-- Final result -->
             <div class="ride-result" id="ride-result">
               <div class="ride-result-title">✓ Ride Completed</div>
@@ -305,8 +307,25 @@
 
 <script>
   const API = 'http://localhost:8080/api';
+  if (!sessionStorage.getItem('userId')) window.location.href = 'login.html';
+  const _sid   = sessionStorage.getItem('userId');
+  const _srole = sessionStorage.getItem('userRole');
+  if (_srole !== 'commuter' && _srole !== 'admin') { alert('Access denied.'); window.location.href = 'login.html'; }
+
+  if (_sid && _srole === 'commuter') document.getElementById('commuter-id').value = _sid;
+  
+  const _avatar = document.querySelector('.avatar');
+  if (_avatar) {
+    _avatar.style.cursor = 'pointer';
+    _avatar.title = 'Logout — ' + (sessionStorage.getItem('userName') || '');
+    _avatar.onclick = () => { sessionStorage.clear(); window.location.href = 'login.html'; };
+  }
+  const _badge = document.querySelector('.badge-role');
+  if (_badge) _badge.textContent = sessionStorage.getItem('userRole') || 'Guest';
+
   let selectedPayment = 'UPI';
   let baseFare = 50, perKm = 12;
+  let currentRideId = null;
 
   function selectVehicle(el, type, base, rate) {
     document.querySelectorAll('.vehicle-option').forEach(v => v.classList.remove('selected'));
@@ -410,6 +429,9 @@
       if (!rideRes.ok) { const e = await rideRes.text(); throw new Error('Request failed: ' + e); }
       const ride = await rideRes.json();
       setStep('request', 'done', `Ride #${ride.id} created`);
+      //Cancel button shown after ride is created
+      currentRideId = ride.id;
+      document.getElementById('cancel-btn').style.display = 'block';
 
       // Step 2 — Assign driver
       setStep('driver', 'active', 'Finding nearest driver...');
@@ -453,6 +475,8 @@
       document.getElementById('res-fare').textContent = '₹' + completedRide.fare;
       document.getElementById('res-payment').textContent = selectedPayment + ' — Success';
       document.getElementById('ride-result').classList.add('visible');
+
+      document.getElementById('cancel-btn').style.display = 'none';
 
       btn.textContent = 'Book Another Ride →';
       btn.disabled = false;
@@ -500,11 +524,48 @@
     }
   }
 
+  async function cancelRide() {
+    if (!currentRideId) return;
+    if (!confirm('Cancel this ride?')) return;
+    try {
+      await fetch(`${API}/rides/${currentRideId}/cancel`, { method: 'POST' });
+      document.getElementById('cancel-btn').style.display = 'none';
+      document.getElementById('booking-steps').classList.remove('visible');
+      const btn = document.getElementById('book-btn');
+      btn.disabled = false;
+      btn.textContent = 'Book Ride →';
+      alert('Ride cancelled.');
+      loadHistory();
+    } catch(e) {
+      alert('Could not cancel ride.');
+    }
+  }
+
   function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   // Init fare display
   loadPlaces();
   updateFare();
+</script>
+<script>
+  // Redirect to login if not authenticated
+  if (!sessionStorage.getItem('userId')) {
+    window.location.href = 'login.html';
+  }
+
+  // Show user name in nav
+  const userName = sessionStorage.getItem('userName');
+  const userRole = sessionStorage.getItem('userRole');
+  const avatarEl = document.querySelector('.avatar');
+  if (avatarEl && userName) {
+    avatarEl.textContent = userName.split(' ').map(n => n[0]).join('').toUpperCase();
+    avatarEl.title = userName + ' (' + userRole + ')';
+  }
+
+  function logout() {
+    sessionStorage.clear();
+    window.location.href = 'login.html';
+  }
 </script>
 </body>
 </html>

@@ -630,7 +630,7 @@
   </ul>
   <div class="nav-right">
     <span class="badge-role">Admin</span>
-    <div class="avatar">AD</div>
+    <div class="avatar" onclick="logout()" title="Logout" style="cursor:pointer">AD</div>
   </div>
 </nav>
 
@@ -937,44 +937,87 @@
           <span class="card-title">Driver Status</span>
           <a href="driver.html" class="card-action">Manage →</a>
         </div>
-        <div style="padding: 8px 0;">
-          <div class="driver-row">
-            <div class="driver-avatar" style="background:rgba(124,92,252,0.2);color:var(--accent2)">AK</div>
-            <div class="driver-info">
-              <div class="driver-name">Arjun Kumar</div>
-              <div class="driver-sub">KA-01-AB-1234 · Sedan</div>
-            </div>
-            <div class="online-dot online"></div>
-          </div>
-          <div class="driver-row">
-            <div class="driver-avatar" style="background:rgba(34,211,160,0.1);color:var(--green)">PS</div>
-            <div class="driver-info">
-              <div class="driver-name">Priya Sharma</div>
-              <div class="driver-sub">KA-02-CD-5678 · SUV</div>
-            </div>
-            <div class="online-dot online"></div>
-          </div>
-          <div class="driver-row">
-            <div class="driver-avatar" style="background:rgba(245,158,11,0.1);color:var(--amber)">RM</div>
-            <div class="driver-info">
-              <div class="driver-name">Ravi Menon</div>
-              <div class="driver-sub">KA-03-EF-9012 · Auto</div>
-            </div>
-            <div class="online-dot offline"></div>
-          </div>
-          <div class="driver-row">
-            <div class="driver-avatar" style="background:rgba(192,132,252,0.1);color:#c084fc)">KR</div>
-            <div class="driver-info">
-              <div class="driver-name">Kavya Reddy</div>
-              <div class="driver-sub">KA-04-GH-3456 · Sedan</div>
-            </div>
-            <div class="online-dot online"></div>
-          </div>
+        <div id="driver-status-list">
+          <div style="padding:16px 22px;color:var(--muted);font-size:0.83rem">Loading...</div>
         </div>
       </div>
     </div>
   </main>
 </div>
+  <script>
+  // Auth guard
+  if (!sessionStorage.getItem('userId')) {
+    window.location.href = 'login.html';
+  }
 
+  // const userName = sessionStorage.getItem('userName');
+  // const avatarEl = document.querySelector('.avatar');
+  if (avatarEl && userName) {
+    avatarEl.textContent = userName.split(' ').map(n => n[0]).join('').toUpperCase();
+    avatarEl.style.cursor = 'pointer';
+    avatarEl.title = 'Logout';
+    avatarEl.onclick = () => { sessionStorage.clear(); window.location.href = 'login.html'; };
+  }
+
+  // Load live driver status
+  async function loadDriverStatus() {
+    const list = document.getElementById('driver-status-list');
+    try {
+      const res = await fetch('http://localhost:8080/api/drivers');
+      const drivers = await res.json();
+      if (!drivers.length) {
+        list.innerHTML = '<div style="padding:16px 22px;color:var(--muted);font-size:0.83rem">No drivers registered.</div>';
+        return;
+      }
+      const colors = [
+        {bg:'rgba(124,92,252,0.2)',color:'var(--accent2)'},
+        {bg:'rgba(34,211,160,0.1)',color:'var(--green)'},
+        {bg:'rgba(245,158,11,0.1)',color:'var(--amber)'},
+        {bg:'rgba(192,132,252,0.1)',color:'#c084fc'},
+      ];
+      list.innerHTML = drivers.map((d, i) => {
+        const c = colors[i % colors.length];
+        const initials = (d.name || '??').split(' ').map(n => n[0]).join('').toUpperCase();
+        const statusColor = d.available ? 'var(--green)' : 'var(--amber)';
+        const statusText  = d.available ? 'Available' : 'On Ride';
+        return `
+          <div class="driver-row">
+            <div class="driver-avatar" style="background:${c.bg};color:${c.color}">${initials}</div>
+            <div class="driver-info">
+              <div class="driver-name">${d.name}</div>
+              <div class="driver-sub">${d.licenseNumber || '—'}</div>
+            </div>
+            <div style="font-size:0.75rem;font-weight:600;color:${statusColor}">${statusText}</div>
+          </div>`;
+      }).join('');
+    } catch(e) {
+      list.innerHTML = '<div style="padding:16px 22px;color:var(--muted);font-size:0.83rem">Could not load — is the server running?</div>';
+    }
+  }
+
+  loadDriverStatus();
+</script>
+  <script>
+    const _badge = document.querySelector('.badge-role');
+    if (_badge) _badge.textContent = sessionStorage.getItem('userRole') || 'Guest';
+    // Redirect to login if not authenticated
+    if (!sessionStorage.getItem('userId')) {
+      window.location.href = 'login.html';
+    }
+
+    // Show user name in nav
+    const userName = sessionStorage.getItem('userName');
+    const userRole = sessionStorage.getItem('userRole');
+    const avatarEl = document.querySelector('.avatar');
+    if (avatarEl && userName) {
+      avatarEl.textContent = userName.split(' ').map(n => n[0]).join('').toUpperCase();
+      avatarEl.title = userName + ' (' + userRole + ')';
+    }
+
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = 'login.html';
+    }
+  </script>
 </body>
 </html>

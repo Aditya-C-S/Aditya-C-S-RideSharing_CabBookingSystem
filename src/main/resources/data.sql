@@ -39,6 +39,17 @@ VALUES (
         '9876543214',
         'pass123'
     );
+-- Seed Admin
+INSERT INTO USERS (id, name, email, phone, password)
+VALUES (
+        6,
+        'Admin User',
+        'admin@rideshare.com',
+        '9000000000',
+        'admin123'
+    );
+INSERT INTO ADMIN (id)
+VALUES (6);
 -- Seed Commuters
 INSERT INTO COMMUTER (id)
 VALUES (1);
