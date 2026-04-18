@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RideShare — Book a Ride</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #18181f;
+    --surface3: #1e1e28;
+    --border: rgba(255,255,255,0.07);
+    --border-hover: rgba(255,255,255,0.14);
+    --accent: #7c5cfc;
+    --accent2: #c084fc;
+    --accent-glow: rgba(124,92,252,0.25);
+    --green: #22d3a0;
+    --amber: #f59e0b;
+    --red: #f43f5e;
+    --text: #f0eeff;
+    --muted: #8585a0;
+    --faint: #3a3a50;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -200px;
+    right: -200px;
+    width: 700px; height: 700px;
+    background: radial-gradient(ellipse, rgba(192,132,252,0.08) 0%, transparent 65%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px; height: 60px;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem;
+    letter-spacing: -0.02em; color: var(--text); text-decoration: none;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .nav-logo .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 10px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.7} }
+
+  .nav-links { display: flex; gap: 4px; list-style: none; }
+  .nav-links a {
+    color: var(--muted); text-decoration: none; font-size: 0.875rem;
+    font-weight: 500; padding: 6px 14px; border-radius: 8px; transition: all 0.2s;
+  }
+  .nav-links a:hover { color: var(--text); background: var(--surface3); }
+  .nav-links a.active { color: var(--accent2); background: var(--surface3); }
+
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .badge-role {
+    font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 3px 10px; border-radius: 20px;
+    background: rgba(34,211,160,0.1); color: var(--green);
+    border: 1px solid rgba(34,211,160,0.25);
+  }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--green), #0ea5e9);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 700; color: #fff; cursor: pointer;
+  }
+
+  .layout { display: flex; min-height: calc(100vh - 60px); position: relative; z-index: 1; }
+
+  aside {
+    width: 220px; flex-shrink: 0; padding: 24px 12px;
+    border-right: 1px solid var(--border);
+    background: rgba(17,17,24,0.6); backdrop-filter: blur(8px);
+  }
+
+  .sidebar-section { margin-bottom: 28px; }
+  .sidebar-label {
+    font-size: 0.65rem; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--faint); padding: 0 12px; margin-bottom: 8px;
+  }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 10px; cursor: pointer;
+    text-decoration: none; color: var(--muted);
+    font-size: 0.875rem; font-weight: 500;
+    transition: all 0.18s; margin-bottom: 2px;
+  }
+  .sidebar-item:hover { background: var(--surface3); color: var(--text); }
+  .sidebar-item.active { background: rgba(124,92,252,0.15); color: var(--accent2); }
+  .sidebar-icon { width: 18px; height: 18px; opacity: 0.7; flex-shrink: 0; }
+  .sidebar-item.active .sidebar-icon { opacity: 1; }
+
+  main { flex: 1; padding: 32px 40px; overflow-y: auto; }
+
+  .page-header { margin-bottom: 32px; animation: fadeUp 0.4s ease both; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+
+  .page-title {
+    font-family: 'Syne', sans-serif; font-size: 1.9rem;
+    font-weight: 700; letter-spacing: -0.03em; margin-bottom: 4px;
+  }
+  .page-subtitle { color: var(--muted); font-size: 0.9rem; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+  }
+
+  .card-header {
+    padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .card-body { padding: 24px; }
+
+  /* FORM STYLES */
+  .form-group { margin-bottom: 20px; }
+  .form-group:last-child { margin-bottom: 0; }
+
+  label {
+    display: block; font-size: 0.78rem; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 8px;
+  }
+
+  input, select {
+    width: 100%; padding: 11px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.18s, background 0.18s;
+    -webkit-appearance: none;
+  }
+
+  input::placeholder { color: var(--faint); }
+
+  input:focus, select:focus {
+    border-color: var(--accent);
+    background: var(--surface3);
+    box-shadow: 0 0 0 3px rgba(124,92,252,0.12);
+  }
+
+  select option { background: var(--surface2); }
+
+  .location-row { display: flex; flex-direction: column; gap: 10px; position: relative; }
+
+  .location-connector {
+    position: absolute; left: 14px; top: 44px; bottom: 44px;
+    width: 1px; background: linear-gradient(to bottom, var(--accent), var(--accent2));
+    opacity: 0.4;
+  }
+
+  .location-input-wrap { position: relative; }
+
+  .location-input-wrap input { padding-left: 36px; }
+
+  .location-dot {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    width: 8px; height: 8px; border-radius: 50%; pointer-events: none;
+  }
+
+  .dot-from { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .dot-to   { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+
+  .vehicle-options {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  }
+
+  .vehicle-option {
+    border: 1.5px solid var(--border);
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 14px 10px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.18s;
+    position: relative;
+  }
+
+  .vehicle-option:hover { border-color: var(--border-hover); }
+  .vehicle-option.selected {
+    border-color: var(--accent);
+    background: rgba(124,92,252,0.1);
+  }
+
+  .vehicle-emoji { font-size: 1.6rem; display: block; margin-bottom: 6px; }
+  .vehicle-name { font-size: 0.8rem; font-weight: 600; color: var(--text); }
+  .vehicle-price { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+  .vehicle-check {
+    position: absolute; top: 8px; right: 8px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--accent); display: none;
+    align-items: center; justify-content: center;
+    font-size: 9px; color: #fff;
+  }
+
+  .vehicle-option.selected .vehicle-check { display: flex; }
+
+  .payment-options { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .pay-opt {
+    flex: 1; min-width: 80px;
+    border: 1.5px solid var(--border);
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 10px 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.18s;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  .pay-opt:hover { border-color: var(--border-hover); color: var(--text); }
+  .pay-opt.selected { border-color: var(--accent); color: var(--accent2); background: rgba(124,92,252,0.1); }
+  .pay-icon { display: block; font-size: 1.2rem; margin-bottom: 4px; }
+
+  .btn-primary {
+    width: 100%; padding: 13px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 12px;
+    color: #fff; font-family: 'Syne', sans-serif;
+    font-size: 0.95rem; font-weight: 700;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    transition: opacity 0.18s, transform 0.18s;
+    position: relative; overflow: hidden;
+  }
+
+  .btn-primary::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(rgba(255,255,255,0.1), transparent);
+  }
+
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  /* FARE ESTIMATE */
+  .fare-estimate {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px;
+    margin-bottom: 20px; display: flex;
+    align-items: center; justify-content: space-between;
+  }
+
+  .fare-label { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
+  .fare-amount {
+    font-family: 'Syne', sans-serif; font-size: 1.5rem;
+    font-weight: 700; color: var(--accent2);
+  }
+
+  .fare-breakdown { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+  /* RIDE HISTORY */
+  .history-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 24px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s; cursor: default;
+  }
+
+  .history-item:last-child { border-bottom: none; }
+  .history-item:hover { background: rgba(255,255,255,0.02); }
+
+  .history-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--surface3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+  }
+
+  .history-info { flex: 1; min-width: 0; }
+
+  .history-route {
+    font-size: 0.85rem; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .history-meta { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+  .history-fare {
+    font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 600;
+    flex-shrink: 0; text-align: right;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    display: inline-block; margin-right: 4px;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo">
+    <div class="dot"></div>
+    RideShare
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Overview</a></li>
+    <li><a href="commuter.html" class="active">Book a Ride</a></li>
+    <li><a href="driver.html">Drivers</a></li>
+    <li><a href="admin.html">Admin</a></li>
+    <li><a href="payments.html">Payments</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge-role">Commuter</span>
+    <div class="avatar">RK</div>
+  </div>
+</nav>
+
+<div class="layout">
+  <aside>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Rides</div>
+      <a href="commuter.html" class="sidebar-item active">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/>
+        </svg>
+        Book Ride
+      </a>
+      <div class="sidebar-item">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+          <path d="M12 6v6l4 2"/>
+        </svg>
+        Ride History
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Account</div>
+      <div class="sidebar-item">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+        Profile
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="page-header">
+      <h1 class="page-title">Book a Ride</h1>
+      <p class="page-subtitle">Choose your pickup, drop and vehicle type to get started.</p>
+    </div>
+
+    <div class="two-col">
+      <!-- Booking form -->
+      <div style="display:flex;flex-direction:column;gap:20px;animation:fadeUp 0.4s ease both">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Trip Details</span>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label>Commuter</label>
+              <select>
+                <option>Rahul Kumar (you)</option>
+                <option>Anjali Singh</option>
+                <option>Mohan Das</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Route</label>
+              <div class="location-row">
+                <div class="location-connector"></div>
+                <div class="location-input-wrap">
+                  <div class="location-dot dot-from"></div>
+                  <input type="text" placeholder="Pickup location" value="Koramangala, Bengaluru" id="pickup-input">
+                </div>
+                <div class="location-input-wrap">
+                  <div class="location-dot dot-to"></div>
+                  <input type="text" placeholder="Drop location" id="drop-input">
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Vehicle Type</label>
+              <div class="vehicle-options">
+                <div class="vehicle-option selected" onclick="selectVehicle(this)">
+                  <span class="vehicle-emoji">🚗</span>
+                  <div class="vehicle-name">Sedan</div>
+                  <div class="vehicle-price">₹50 base</div>
+                  <div class="vehicle-check">✓</div>
+                </div>
+                <div class="vehicle-option" onclick="selectVehicle(this)">
+                  <span class="vehicle-emoji">🚙</span>
+                  <div class="vehicle-name">SUV</div>
+                  <div class="vehicle-price">₹80 base</div>
+                  <div class="vehicle-check">✓</div>
+                </div>
+                <div class="vehicle-option" onclick="selectVehicle(this)">
+                  <span class="vehicle-emoji">🛺</span>
+                  <div class="vehicle-name">Auto</div>
+                  <div class="vehicle-price">₹30 base</div>
+                  <div class="vehicle-check">✓</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Payment Method</span>
+          </div>
+          <div class="card-body">
+            <div class="payment-options">
+              <div class="pay-opt selected" onclick="selectPayment(this)">
+                <span class="pay-icon">📱</span>
+                UPI
+              </div>
+              <div class="pay-opt" onclick="selectPayment(this)">
+                <span class="pay-icon">💳</span>
+                Card
+              </div>
+              <div class="pay-opt" onclick="selectPayment(this)">
+                <span class="pay-icon">💵</span>
+                Cash
+              </div>
+              <div class="pay-opt" onclick="selectPayment(this)">
+                <span class="pay-icon">👜</span>
+                Wallet
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fare + confirm + history -->
+      <div style="display:flex;flex-direction:column;gap:20px;animation:fadeUp 0.4s 0.1s ease both">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Fare Estimate</span>
+          </div>
+          <div class="card-body">
+            <div class="fare-estimate">
+              <div>
+                <div class="fare-label">Estimated fare</div>
+                <div class="fare-breakdown" id="fare-breakdown">Base ₹50 + ₹12/km · ~8 km</div>
+              </div>
+              <div>
+                <div class="fare-amount" id="fare-amount">₹146</div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+              <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+                <span style="color:var(--muted)">Base fare</span>
+                <span>₹50</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+                <span style="color:var(--muted)">Distance (≈ 8 km)</span>
+                <span>₹96</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+                <span style="color:var(--muted)">Surge pricing</span>
+                <span style="color:var(--green)">None</span>
+              </div>
+              <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;justify-content:space-between;font-size:0.9rem;font-weight:600">
+                <span>Total</span>
+                <span style="color:var(--accent2)">₹146</span>
+              </div>
+            </div>
+
+            <button class="btn-primary" onclick="bookRide()">
+              Book Ride →
+            </button>
+
+            <div id="booking-status" style="display:none;margin-top:14px;padding:12px 14px;border-radius:10px;font-size:0.83rem;text-align:center"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Rides</span>
+          </div>
+          <div class="history-item">
+            <div class="history-icon" style="background:rgba(34,211,160,0.1)">✓</div>
+            <div class="history-info">
+              <div class="history-route">Koramangala → Indiranagar</div>
+              <div class="history-meta">
+                <span class="status-dot" style="background:var(--green)"></span>
+                Completed · Today, 2:15 PM
+              </div>
+            </div>
+            <div class="history-fare">₹220</div>
+          </div>
+          <div class="history-item">
+            <div class="history-icon" style="background:rgba(34,211,160,0.1)">✓</div>
+            <div class="history-info">
+              <div class="history-route">MG Road → Whitefield</div>
+              <div class="history-meta">
+                <span class="status-dot" style="background:var(--green)"></span>
+                Completed · Yesterday, 9:40 AM
+              </div>
+            </div>
+            <div class="history-fare">₹410</div>
+          </div>
+          <div class="history-item">
+            <div class="history-icon" style="background:rgba(244,63,94,0.1)">✕</div>
+            <div class="history-info">
+              <div class="history-route">HSR Layout → BTM</div>
+              <div class="history-meta">
+                <span class="status-dot" style="background:var(--red)"></span>
+                Cancelled · 2 days ago
+              </div>
+            </div>
+            <div class="history-fare" style="color:var(--muted)">—</div>
+          </div>
+          <div class="history-item">
+            <div class="history-icon" style="background:rgba(34,211,160,0.1)">✓</div>
+            <div class="history-info">
+              <div class="history-route">Electronic City → Silk Board</div>
+              <div class="history-meta">
+                <span class="status-dot" style="background:var(--green)"></span>
+                Completed · 3 days ago
+              </div>
+            </div>
+            <div class="history-fare">₹185</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  function selectVehicle(el) {
+    document.querySelectorAll('.vehicle-option').forEach(v => v.classList.remove('selected'));
+    el.classList.add('selected');
+    const prices = { '🚗': {base:50,rate:12}, '🚙': {base:80,rate:18}, '🛺': {base:30,rate:8} };
+    const emoji = el.querySelector('.vehicle-emoji').textContent;
+    const p = prices[emoji];
+    const km = 8;
+    const total = p.base + p.rate * km;
+    document.getElementById('fare-amount').textContent = '₹' + total;
+    document.getElementById('fare-breakdown').textContent = `Base ₹${p.base} + ₹${p.rate}/km · ~${km} km`;
+    document.querySelector('.two-col .card-body > div:last-child span:last-child, .fare-amount').textContent = '₹' + total;
+  }
+
+  function selectPayment(el) {
+    document.querySelectorAll('.pay-opt').forEach(v => v.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function bookRide() {
+    const pickup = document.getElementById('pickup-input').value;
+    const drop = document.getElementById('drop-input').value;
+    if (!pickup || !drop) {
+      showStatus('Please enter pickup and drop locations.', 'error');
+      return;
+    }
+    showStatus('🔍 Finding nearest driver...', 'loading');
+    setTimeout(() => showStatus('🚗 Driver Arjun K. assigned! ETA 4 mins.', 'success'), 1800);
+  }
+
+  function showStatus(msg, type) {
+    const el = document.getElementById('booking-status');
+    el.style.display = 'block';
+    el.textContent = msg;
+    el.style.background = type === 'success' ? 'rgba(34,211,160,0.1)'
+      : type === 'error' ? 'rgba(244,63,94,0.1)'
+      : 'rgba(124,92,252,0.1)';
+    el.style.color = type === 'success' ? 'var(--green)'
+      : type === 'error' ? 'var(--red)'
+      : 'var(--accent2)';
+    el.style.border = `1px solid ${type === 'success' ? 'rgba(34,211,160,0.2)'
+      : type === 'error' ? 'rgba(244,63,94,0.2)'
+      : 'rgba(124,92,252,0.2)'}`;
+  }
+</script>
+</body>
+</html>

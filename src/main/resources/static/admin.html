@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RideShare — Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#0a0a0f; --surface:#111118; --surface2:#18181f; --surface3:#1e1e28;
+    --border:rgba(255,255,255,0.07); --border-hover:rgba(255,255,255,0.14);
+    --accent:#7c5cfc; --accent2:#c084fc; --green:#22d3a0;
+    --amber:#f59e0b; --red:#f43f5e; --text:#f0eeff; --muted:#8585a0; --faint:#3a3a50;
+  }
+  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+  body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px); background-size:48px 48px; pointer-events:none; z-index:0; }
+  nav { position:sticky; top:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:0 32px; height:60px; background:rgba(10,10,15,0.85); backdrop-filter:blur(16px); border-bottom:1px solid var(--border); }
+  .nav-logo { font-family:'Syne',sans-serif; font-weight:800; font-size:1.2rem; letter-spacing:-0.02em; color:var(--text); text-decoration:none; display:flex; align-items:center; gap:10px; }
+  .nav-logo .dot { width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 10px var(--accent); animation:pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.4)} }
+  .nav-links { display:flex; gap:4px; list-style:none; }
+  .nav-links a { color:var(--muted); text-decoration:none; font-size:0.875rem; font-weight:500; padding:6px 14px; border-radius:8px; transition:all 0.2s; }
+  .nav-links a:hover { color:var(--text); background:var(--surface3); }
+  .nav-links a.active { color:var(--accent2); background:var(--surface3); }
+  .nav-right { display:flex; align-items:center; gap:12px; }
+  .badge-role { font-size:0.7rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; padding:3px 10px; border-radius:20px; background:rgba(124,92,252,0.15); color:var(--accent2); border:1px solid rgba(124,92,252,0.3); }
+  .avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; color:#fff; cursor:pointer; }
+
+  .layout { display:flex; min-height:calc(100vh - 60px); position:relative; z-index:1; }
+  aside { width:220px; flex-shrink:0; padding:24px 12px; border-right:1px solid var(--border); background:rgba(17,17,24,0.6); backdrop-filter:blur(8px); }
+  .sidebar-section { margin-bottom:28px; }
+  .sidebar-label { font-size:0.65rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:var(--faint); padding:0 12px; margin-bottom:8px; }
+  .sidebar-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:10px; cursor:pointer; text-decoration:none; color:var(--muted); font-size:0.875rem; font-weight:500; transition:all 0.18s; margin-bottom:2px; }
+  .sidebar-item:hover { background:var(--surface3); color:var(--text); }
+  .sidebar-item.active { background:rgba(124,92,252,0.15); color:var(--accent2); }
+  .sidebar-icon { width:18px; height:18px; opacity:0.7; flex-shrink:0; }
+  .sidebar-item.active .sidebar-icon { opacity:1; }
+
+  main { flex:1; padding:32px 40px; overflow-y:auto; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+
+  .page-header { margin-bottom:28px; animation:fadeUp 0.4s ease both; display:flex; align-items:flex-end; justify-content:space-between; }
+  .page-title { font-family:'Syne',sans-serif; font-size:1.9rem; font-weight:700; letter-spacing:-0.03em; margin-bottom:4px; }
+  .page-subtitle { color:var(--muted); font-size:0.9rem; }
+
+  .btn { padding:10px 20px; border-radius:10px; border:none; font-family:'DM Sans',sans-serif; font-size:0.875rem; font-weight:600; cursor:pointer; transition:all 0.18s; display:inline-flex; align-items:center; gap:8px; }
+  .btn-primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; }
+  .btn-primary:hover { opacity:0.88; transform:translateY(-1px); }
+
+  /* REPORT CARDS */
+  .report-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; animation:fadeUp 0.4s 0.05s ease both; }
+
+  .report-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:22px 20px; position:relative; overflow:hidden;
+  }
+
+  .report-card::after {
+    content:''; position:absolute; bottom:0; left:0; right:0;
+    height:3px; border-radius:0 0 4px 4px;
+  }
+
+  .rc-purple::after { background:linear-gradient(90deg,var(--accent),var(--accent2)); }
+  .rc-green::after  { background:linear-gradient(90deg,#14b8a6,var(--green)); }
+  .rc-amber::after  { background:linear-gradient(90deg,#d97706,var(--amber)); }
+  .rc-red::after    { background:linear-gradient(90deg,#dc2626,var(--red)); }
+  .rc-blue::after   { background:linear-gradient(90deg,#2563eb,#38bdf8); }
+  .rc-teal::after   { background:linear-gradient(90deg,#0d9488,#5eead4); }
+
+  .rc-label { font-size:0.72rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+  .rc-value { font-family:'Syne',sans-serif; font-size:2rem; font-weight:700; letter-spacing:-0.04em; margin-bottom:6px; }
+  .rc-sub { font-size:0.75rem; color:var(--muted); }
+
+  /* ALL RIDES TABLE */
+  .section-header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:14px;
+    animation:fadeUp 0.4s 0.1s ease both;
+  }
+  .section-title { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; }
+
+  .filter-row { display:flex; gap:8px; }
+
+  .filter-btn { padding:6px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--muted); font-size:0.8rem; font-weight:500; cursor:pointer; transition:all 0.15s; }
+  .filter-btn:hover { color:var(--text); border-color:var(--border-hover); }
+  .filter-btn.active { background:rgba(124,92,252,0.15); border-color:var(--accent); color:var(--accent2); }
+
+  .table-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; animation:fadeUp 0.4s 0.12s ease both; }
+
+  table { width:100%; border-collapse:collapse; }
+  thead th { text-align:left; font-size:0.68rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); padding:13px 20px; border-bottom:1px solid var(--border); }
+  tbody td { padding:13px 20px; font-size:0.85rem; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle; }
+  tbody tr:last-child td { border-bottom:none; }
+  tbody tr:hover td { background:rgba(255,255,255,0.02); cursor:default; }
+
+  .status-badge { display:inline-flex; align-items:center; gap:5px; font-size:0.72rem; font-weight:600; letter-spacing:0.04em; padding:3px 10px; border-radius:20px; }
+  .status-badge::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; }
+  .status-COMPLETED  { background:rgba(34,211,160,0.1); color:var(--green); }
+  .status-IN_PROGRESS{ background:rgba(124,92,252,0.15); color:var(--accent2); }
+  .status-CANCELLED  { background:rgba(244,63,94,0.1); color:var(--red); }
+  .status-REQUESTED  { background:rgba(245,158,11,0.1); color:var(--amber); }
+  .status-DRIVER_ASSIGNED { background:rgba(34,211,160,0.08); color:#5eead4; }
+
+  .td-route { display:flex; flex-direction:column; gap:2px; }
+  .td-from { font-weight:500; }
+  .td-to { font-size:0.78rem; color:var(--muted); }
+
+  .fare-cell { font-family:'Syne',sans-serif; font-size:0.9rem; font-weight:600; }
+
+  /* COMMUTER TABLE */
+  .two-col-section { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:24px; animation:fadeUp 0.4s 0.15s ease both; }
+
+  .user-row { display:flex; align-items:center; gap:12px; padding:11px 20px; border-bottom:1px solid rgba(255,255,255,0.04); transition:background 0.15s; }
+  .user-row:last-child { border-bottom:none; }
+  .user-row:hover { background:rgba(255,255,255,0.02); }
+  .user-av { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; }
+  .user-info { flex:1; min-width:0; }
+  .user-name { font-size:0.85rem; font-weight:500; }
+  .user-email { font-size:0.72rem; color:var(--muted); }
+  .user-rides { font-size:0.78rem; font-weight:600; color:var(--muted); }
+
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--faint); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo"><div class="dot"></div>RideShare</a>
+  <ul class="nav-links">
+    <li><a href="index.html">Overview</a></li>
+    <li><a href="commuter.html">Book a Ride</a></li>
+    <li><a href="driver.html">Drivers</a></li>
+    <li><a href="admin.html" class="active">Admin</a></li>
+    <li><a href="payments.html">Payments</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge-role">Admin</span>
+    <div class="avatar">AD</div>
+  </div>
+</nav>
+
+<div class="layout">
+  <aside>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Admin</div>
+      <a href="admin.html" class="sidebar-item active">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+        Reports
+      </a>
+      <a href="driver.html" class="sidebar-item">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+        Drivers
+      </a>
+      <a href="payments.html" class="sidebar-item">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+        </svg>
+        Payments
+      </a>
+    </div>
+  </aside>
+
+  <main>
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Admin Panel</h1>
+        <p class="page-subtitle">System reports, ride monitoring and user management.</p>
+      </div>
+      <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
+    </div>
+
+    <!-- Report cards -->
+    <div class="report-grid">
+      <div class="report-card rc-purple">
+        <div class="rc-label">Total Rides</div>
+        <div class="rc-value">248</div>
+        <div class="rc-sub">All time across all commuters</div>
+      </div>
+      <div class="report-card rc-green">
+        <div class="rc-label">Completed</div>
+        <div class="rc-value" style="color:var(--green)">198</div>
+        <div class="rc-sub">79.8% completion rate</div>
+      </div>
+      <div class="report-card rc-red">
+        <div class="rc-label">Cancelled</div>
+        <div class="rc-value" style="color:var(--red)">36</div>
+        <div class="rc-sub">14.5% cancellation rate</div>
+      </div>
+      <div class="report-card rc-amber">
+        <div class="rc-label">Total Revenue</div>
+        <div class="rc-value" style="color:var(--amber)">₹34.2K</div>
+        <div class="rc-sub">From 198 successful rides</div>
+      </div>
+      <div class="report-card rc-blue">
+        <div class="rc-label">Commuters</div>
+        <div class="rc-value" style="color:#38bdf8">12</div>
+        <div class="rc-sub">Registered users</div>
+      </div>
+      <div class="report-card rc-teal">
+        <div class="rc-label">Avg Fare</div>
+        <div class="rc-value" style="color:#5eead4">₹172</div>
+        <div class="rc-sub">Per completed ride</div>
+      </div>
+    </div>
+
+    <!-- All Rides -->
+    <div class="section-header">
+      <span class="section-title">All Rides</span>
+      <div class="filter-row">
+        <button class="filter-btn active" onclick="filterRides(this,'ALL')">All</button>
+        <button class="filter-btn" onclick="filterRides(this,'COMPLETED')">Completed</button>
+        <button class="filter-btn" onclick="filterRides(this,'IN_PROGRESS')">In Progress</button>
+        <button class="filter-btn" onclick="filterRides(this,'CANCELLED')">Cancelled</button>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Commuter</th>
+            <th>Route</th>
+            <th>Driver</th>
+            <th>Status</th>
+            <th>Fare</th>
+          </tr>
+        </thead>
+        <tbody id="rides-tbody">
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Commuters + Drivers -->
+    <div class="two-col-section">
+      <div>
+        <div class="section-header" style="margin-bottom:12px">
+          <span class="section-title">Commuters</span>
+          <a href="commuter.html" style="font-size:0.8rem;color:var(--accent2);text-decoration:none">Manage →</a>
+        </div>
+        <div class="table-card">
+          <div class="user-row">
+            <div class="user-av" style="background:rgba(124,92,252,0.15);color:var(--accent2)">RK</div>
+            <div class="user-info"><div class="user-name">Rahul Kumar</div><div class="user-email">rahul@example.com</div></div>
+            <span class="user-rides">24 rides</span>
+          </div>
+          <div class="user-row">
+            <div class="user-av" style="background:rgba(34,211,160,0.12);color:var(--green)">AS</div>
+            <div class="user-info"><div class="user-name">Anjali Singh</div><div class="user-email">anjali@example.com</div></div>
+            <span class="user-rides">18 rides</span>
+          </div>
+          <div class="user-row">
+            <div class="user-av" style="background:rgba(245,158,11,0.1);color:var(--amber)">MD</div>
+            <div class="user-info"><div class="user-name">Mohan Das</div><div class="user-email">mohan@example.com</div></div>
+            <span class="user-rides">11 rides</span>
+          </div>
+          <div class="user-row">
+            <div class="user-av" style="background:rgba(244,63,94,0.1);color:var(--red)">SP</div>
+            <div class="user-info"><div class="user-name">Sneha Pillai</div><div class="user-email">sneha@example.com</div></div>
+            <span class="user-rides">7 rides</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="section-header" style="margin-bottom:12px">
+          <span class="section-title">Top Drivers</span>
+          <a href="driver.html" style="font-size:0.8rem;color:var(--accent2);text-decoration:none">Manage →</a>
+        </div>
+        <div class="table-card">
+          <div class="user-row">
+            <div class="user-av" style="background:rgba(124,92,252,0.18);color:var(--accent2)">AK</div>
+            <div class="user-info"><div class="user-name">Arjun Kumar</div><div class="user-email">KA-01-AB-1234 · Sedan</div></div>
+            <span class="user-rides">⭐ 4.8</span>
+          </div>
+          <div class="user-row">
+            <div class="user-av" style="background:rgba(34,211,160,0.12);color:var(--green)">KR</div>
+            <div class="user-info"><div class="user-name">Kavya Reddy</div><div class="user-email">KA-04-GH-3456 · Sedan</div></div>
+            <span class="user-rides">⭐ 4.9</span>
+          </div>
+          <div class="user-row">
+            <div class="user-av" style="background:rgba(245,158,11,0.1);color:var(--amber)">PS</div>
+            <div class="user-info"><div class="user-name">Priya Sharma</div><div class="user-email">KA-02-CD-5678 · SUV</div></div>
+            <span class="user-rides">⭐ 4.6</span>
+          </div>
+          <div class="user-row">
+            <div class="user-av" style="background:rgba(56,189,248,0.1);color:#38bdf8">DR</div>
+            <div class="user-info"><div class="user-name">Deepa Raj</div><div class="user-email">KA-06-KL-1234 · Auto</div></div>
+            <span class="user-rides">⭐ 4.7</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const ridesData = [
+    {id:248, commuter:'Rahul Kumar',  from:'Koramangala',  to:'Indiranagar',      driver:'Arjun K.', status:'COMPLETED',     fare:220},
+    {id:247, commuter:'Anjali Singh', from:'HSR Layout',   to:'MG Road',          driver:'Priya S.', status:'IN_PROGRESS',   fare:310},
+    {id:246, commuter:'Mohan Das',    from:'Whitefield',   to:'Electronic City',  driver:'Ravi M.',  status:'COMPLETED',     fare:480},
+    {id:245, commuter:'Sneha Pillai', from:'BTM Layout',   to:'JP Nagar',         driver:'—',        status:'CANCELLED',     fare:0},
+    {id:244, commuter:'Rahul Kumar',  from:'Marathahalli', to:'Bellandur',        driver:'Kavya R.', status:'DRIVER_ASSIGNED',fare:175},
+    {id:243, commuter:'Anjali Singh', from:'Jayanagar',    to:'Banashankari',     driver:'Arjun K.', status:'COMPLETED',     fare:130},
+    {id:242, commuter:'Mohan Das',    from:'Yelahanka',    to:'Hebbal',           driver:'Ravi M.',  status:'COMPLETED',     fare:210},
+    {id:241, commuter:'Sneha Pillai', from:'Rajajinagar',  to:'Malleshwaram',     driver:'Deepa R.', status:'COMPLETED',     fare:95},
+  ];
+
+  let currentFilter = 'ALL';
+
+  function renderRides(filter) {
+    const tbody = document.getElementById('rides-tbody');
+    const filtered = filter === 'ALL' ? ridesData : ridesData.filter(r => r.status === filter);
+    tbody.innerHTML = filtered.map(r => `
+      <tr>
+        <td style="color:var(--muted);font-size:0.8rem">#${r.id}</td>
+        <td style="font-weight:500">${r.commuter}</td>
+        <td>
+          <div class="td-route">
+            <span class="td-from">${r.from}</span>
+            <span class="td-to">→ ${r.to}</span>
+          </div>
+        </td>
+        <td style="color:var(--muted);font-size:0.83rem">${r.driver}</td>
+        <td><span class="status-badge status-${r.status}">${r.status.replace('_',' ')}</span></td>
+        <td><span class="fare-cell">${r.fare ? '₹'+r.fare : '—'}</span></td>
+      </tr>
+    `).join('');
+  }
+
+  function filterRides(el, filter) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    currentFilter = filter;
+    renderRides(filter);
+  }
+
+  function generateReport() {
+    const completed = ridesData.filter(r => r.status === 'COMPLETED').length;
+    const revenue = ridesData.filter(r => r.status === 'COMPLETED').reduce((s,r) => s + r.fare, 0);
+    alert(`System Report\n─────────────\nTotal Rides: ${ridesData.length}\nCompleted: ${completed}\nCancelled: ${ridesData.filter(r=>r.status==='CANCELLED').length}\nTotal Revenue: ₹${revenue}\n\nReport generated at ${new Date().toLocaleTimeString()}`);
+  }
+
+  renderRides('ALL');
+</script>
+</body>
+</html>

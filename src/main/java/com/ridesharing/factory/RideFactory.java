@@ -1,15 +1,15 @@
-package factory;
+package com.ridesharing.factory;
 
-import model.*;
+import com.ridesharing.model.Commuter;
+import com.ridesharing.model.Ride;
+import org.springframework.stereotype.Component;
 
+@Component
 public class RideFactory {
-    private static int rideCounter = 1;
 
-    public static Ride createRide(Commuter commuter, 
-                                   String pickup, String drop) {
-        Ride ride = new Ride(rideCounter++, commuter, pickup, drop);
-        System.out.println("RideFactory: Created Ride #" + ride.getRideId() +
-                           " for " + commuter.getName());
+    public Ride createRide(Commuter commuter, String pickup, String drop) {
+        Ride ride = new Ride(commuter, pickup, drop);
+        System.out.println("RideFactory: Created ride for " + commuter.getName());
         return ride;
     }
 }
