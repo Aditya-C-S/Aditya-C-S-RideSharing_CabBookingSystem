@@ -139,7 +139,7 @@
   </ul>
   <div class="nav-right">
     <span class="badge-role">Admin</span>
-    <div class="avatar">AD</div>
+    <div class="avatar" onclick="logout()" title="Logout" style="cursor:pointer">AD</div>
   </div>
 </nav>
 
@@ -302,6 +302,18 @@
 </div>
 
 <script>
+  if (!sessionStorage.getItem('userId')) window.location.href = 'login.html';
+  const _srole = sessionStorage.getItem('userRole');
+  if (_srole !== 'admin') { alert('Please log in as an Admin.'); window.location.href = 'login.html'; }
+  const _avatar = document.querySelector('.avatar');
+  if (_avatar) {
+    _avatar.style.cursor = 'pointer';
+    _avatar.title = 'Logout — ' + (sessionStorage.getItem('userName') || '');
+    _avatar.onclick = () => { sessionStorage.clear(); window.location.href = 'login.html'; };
+  }
+  const _badge = document.querySelector('.badge-role');
+  if (_badge) _badge.textContent = sessionStorage.getItem('userRole') || 'Guest';
+  
   const ridesData = [
     {id:248, commuter:'Rahul Kumar',  from:'Koramangala',  to:'Indiranagar',      driver:'Arjun K.', status:'COMPLETED',     fare:220},
     {id:247, commuter:'Anjali Singh', from:'HSR Layout',   to:'MG Road',          driver:'Priya S.', status:'IN_PROGRESS',   fare:310},
@@ -349,6 +361,26 @@
   }
 
   renderRides('ALL');
+</script>
+<script>
+  // Redirect to login if not authenticated
+  if (!sessionStorage.getItem('userId')) {
+    window.location.href = 'login.html';
+  }
+
+  // Show user name in nav
+  const userName = sessionStorage.getItem('userName');
+  const userRole = sessionStorage.getItem('userRole');
+  const avatarEl = document.querySelector('.avatar');
+  if (avatarEl && userName) {
+    avatarEl.textContent = userName.split(' ').map(n => n[0]).join('').toUpperCase();
+    avatarEl.title = userName + ' (' + userRole + ')';
+  }
+
+  function logout() {
+    sessionStorage.clear();
+    window.location.href = 'login.html';
+  }
 </script>
 </body>
 </html>

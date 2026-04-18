@@ -6,6 +6,7 @@ import com.ridesharing.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import com.ridesharing.repository.PlaceDistanceRepository;
 
 @Service
 public class RideService {
@@ -18,6 +19,9 @@ public class RideService {
 
     @Autowired
     private CommuterRepository commuterRepository;
+
+    @Autowired
+    private PlaceDistanceRepository placeDistanceRepository;
 
     // Request a new ride
     public Ride requestRide(Long commuterId, String pickup, String drop) {
@@ -92,8 +96,10 @@ public class RideService {
     private double calculateFare(String pickup, String drop) {
         double baseFare = 50.0;
         double perKmRate = 12.0;
-        double estimatedKm = (pickup.length() + drop.length()) % 20 + 5;
-        return baseFare + (perKmRate * estimatedKm);
+        double km = placeDistanceRepository.findDistance(pickup, drop)
+            .map(p -> p.getDistanceKm())
+            .orElse(10.0); // fallback if pair not found
+        return baseFare + (perKmRate * km);
     }
 
     // Get all rides
@@ -115,5 +121,15 @@ public class RideService {
     public Ride getRideById(Long rideId) {
         return rideRepository.findById(rideId)
             .orElseThrow(() -> new RuntimeException("Ride not found"));
+    }
+
+    public List<String> getPlaces() {
+        return placeDistanceRepository.findAllPlaceNames();
+    }
+
+    public double getDistance(String pickup, String drop) {
+        return placeDistanceRepository.findDistance(pickup, drop)
+            .map(p -> p.getDistanceKm())
+            .orElse(10.0); // fallback if pair not found
     }
 }
