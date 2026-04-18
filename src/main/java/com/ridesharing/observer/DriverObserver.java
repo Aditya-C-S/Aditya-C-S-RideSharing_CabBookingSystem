@@ -1,6 +1,6 @@
-package observer;
+package com.ridesharing.observer;
 
-import model.Driver;
+import com.ridesharing.model.Driver;
 
 public class DriverObserver implements Observer {
     private Driver driver;
@@ -11,7 +11,6 @@ public class DriverObserver implements Observer {
 
     @Override
     public void update(String message) {
-        System.out.println("  → Driver [" + driver.getName() + 
-                           "] notified: " + message);
+        System.out.println("  → Driver [" + driver.getName() + "] notified: " + message);
     }
 }

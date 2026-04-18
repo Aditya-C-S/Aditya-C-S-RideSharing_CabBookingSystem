@@ -1,6 +1,6 @@
-package observer;
+package com.ridesharing.observer;
 
-import model.Commuter;
+import com.ridesharing.model.Commuter;
 
 public class CommuterObserver implements Observer {
     private Commuter commuter;
@@ -11,7 +11,6 @@ public class CommuterObserver implements Observer {
 
     @Override
     public void update(String message) {
-        System.out.println("  → Commuter [" + commuter.getName() + 
-                           "] notified: " + message);
+        System.out.println("  → Commuter [" + commuter.getName() + "] notified: " + message);
     }
 }

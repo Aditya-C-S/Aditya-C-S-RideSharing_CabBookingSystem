@@ -1,32 +1,35 @@
-package model;
+package com.ridesharing.model;
 
+import jakarta.persistence.*;
+
+@Entity
 public class Vehicle {
-    private int vehicleId;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     private String licensePlate;
     private String model;
-    private String type; // Sedan, SUV, Auto
-    private boolean isActive;
+    private String type;
+    private boolean active;
 
-    public Vehicle(int vehicleId, String licensePlate, String model, String type) {
-        this.vehicleId = vehicleId;
+    public Vehicle() {}
+
+    public Vehicle(String licensePlate, String model, String type) {
         this.licensePlate = licensePlate;
         this.model = model;
         this.type = type;
-        this.isActive = true;
+        this.active = true;
     }
 
-    public int getVehicleId() { return vehicleId; }
+    public Long getId() { return id; }
     public String getLicensePlate() { return licensePlate; }
     public String getModel() { return model; }
     public String getType() { return type; }
-    public boolean isActive() { return isActive; }
-    public void setActive(boolean active) { this.isActive = active; }
-
-    public void displayInfo() {
-        System.out.println("--- Vehicle ---");
-        System.out.println("ID: " + vehicleId);
-        System.out.println("Plate: " + licensePlate);
-        System.out.println("Model: " + model);
-        System.out.println("Type: " + type);
-    }
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
+    public void setLicensePlate(String licensePlate) { this.licensePlate = licensePlate; }
+    public void setModel(String model) { this.model = model; }
+    public void setType(String type) { this.type = type; }
 }

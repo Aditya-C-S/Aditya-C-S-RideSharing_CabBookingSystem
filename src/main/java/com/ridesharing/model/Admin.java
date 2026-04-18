@@ -1,16 +1,13 @@
-package model;
+package com.ridesharing.model;
 
+import jakarta.persistence.*;
+
+@Entity
 public class Admin extends User {
 
-    public Admin(int userId, String name, String email, String phone, String password) {
-        super(userId, name, email, phone, password);
-    }
+    public Admin() {}
 
-    @Override
-    public void displayInfo() {
-        System.out.println("--- Admin ---");
-        System.out.println("ID: " + getUserId());
-        System.out.println("Name: " + getName());
-        System.out.println("Email: " + getEmail());
+    public Admin(String name, String email, String phone, String password) {
+        super(name, email, phone, password);
     }
 }

@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RideShare — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #18181f;
+    --surface3: #1e1e28;
+    --border: rgba(255,255,255,0.07);
+    --border-hover: rgba(255,255,255,0.14);
+    --accent: #7c5cfc;
+    --accent2: #c084fc;
+    --accent-glow: rgba(124,92,252,0.25);
+    --green: #22d3a0;
+    --amber: #f59e0b;
+    --red: #f43f5e;
+    --text: #f0eeff;
+    --muted: #8585a0;
+    --faint: #3a3a50;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glow blob */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 900px;
+    height: 600px;
+    background: radial-gradient(ellipse, rgba(124,92,252,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    height: 60px;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .nav-logo .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { transform: scale(1); opacity:1; }
+    50% { transform: scale(1.4); opacity:0.7; }
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 4px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+
+  .nav-links a:hover, .nav-links a.active {
+    color: var(--text);
+    background: var(--surface3);
+  }
+
+  .nav-links a.active { color: var(--accent2); }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .badge-role {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(124,92,252,0.15);
+    color: var(--accent2);
+    border: 1px solid rgba(124,92,252,0.3);
+  }
+
+  .avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+  }
+
+  /* LAYOUT */
+  .layout {
+    display: flex;
+    min-height: calc(100vh - 60px);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* SIDEBAR */
+  aside {
+    width: 220px;
+    flex-shrink: 0;
+    padding: 24px 12px;
+    border-right: 1px solid var(--border);
+    background: rgba(17,17,24,0.6);
+    backdrop-filter: blur(8px);
+  }
+
+  .sidebar-section {
+    margin-bottom: 28px;
+  }
+
+  .sidebar-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    padding: 0 12px;
+    margin-bottom: 8px;
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.18s;
+    margin-bottom: 2px;
+  }
+
+  .sidebar-item:hover { background: var(--surface3); color: var(--text); }
+  .sidebar-item.active { background: rgba(124,92,252,0.15); color: var(--accent2); }
+
+  .sidebar-icon {
+    width: 18px; height: 18px;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+
+  .sidebar-item.active .sidebar-icon { opacity: 1; }
+
+  .sidebar-count {
+    margin-left: auto;
+    font-size: 0.7rem;
+    padding: 1px 7px;
+    border-radius: 20px;
+    background: var(--surface3);
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .sidebar-item.active .sidebar-count {
+    background: rgba(124,92,252,0.2);
+    color: var(--accent2);
+  }
+
+  /* MAIN */
+  main {
+    flex: 1;
+    padding: 32px 36px;
+    overflow-y: auto;
+  }
+
+  /* PAGE HEADER */
+  .page-header {
+    margin-bottom: 32px;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.9rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .page-subtitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  /* STATS GRID */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+    animation: fadeUp 0.5s 0.1s ease both;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 20px;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--card-accent, var(--accent)), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .stat-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+  .stat-card:hover::before { opacity: 1; }
+
+  .stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .stat-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .stat-delta {
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .stat-delta.up { color: var(--green); }
+  .stat-delta.down { color: var(--red); }
+
+  /* CONTENT GRID */
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 20px;
+    animation: fadeUp 0.5s 0.2s ease both;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .card-action {
+    font-size: 0.75rem;
+    color: var(--accent2);
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .card-action:hover { text-decoration: underline; }
+
+  /* RIDES TABLE */
+  .rides-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .rides-table th {
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 12px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .rides-table td {
+    padding: 14px 22px;
+    font-size: 0.85rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: middle;
+  }
+
+  .rides-table tr:last-child td { border-bottom: none; }
+
+  .rides-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .route {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .route-from { font-weight: 500; color: var(--text); }
+
+  .route-to {
+    font-size: 0.78rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .route-arrow { color: var(--accent); font-size: 10px; }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  .status-badge::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .status-COMPLETED  { background: rgba(34,211,160,0.1); color: var(--green); }
+  .status-IN_PROGRESS{ background: rgba(124,92,252,0.15); color: var(--accent2); }
+  .status-CANCELLED  { background: rgba(244,63,94,0.1); color: var(--red); }
+  .status-REQUESTED  { background: rgba(245,158,11,0.1); color: var(--amber); }
+  .status-DRIVER_ASSIGNED { background: rgba(34,211,160,0.08); color: #5eead4; }
+
+  .fare {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  /* ACTIVITY PANEL */
+  .activity-list { padding: 8px 0; }
+
+  .activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 22px;
+    transition: background 0.15s;
+    cursor: default;
+  }
+
+  .activity-item:hover { background: rgba(255,255,255,0.02); }
+
+  .activity-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+
+  .activity-text {
+    font-size: 0.83rem;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .activity-time {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  /* BOTTOM SECTION */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+    animation: fadeUp 0.5s 0.3s ease both;
+  }
+
+  /* MINI CHART */
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 80px;
+    padding: 18px 22px 14px;
+  }
+
+  .bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+  }
+
+  .bar {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    background: var(--surface3);
+    transition: background 0.2s;
+    position: relative;
+    min-height: 4px;
+  }
+
+  .bar.active { background: var(--accent); }
+  .bar-label { font-size: 0.6rem; color: var(--muted); }
+
+  /* QUICK ACTIONS */
+  .quick-actions { padding: 14px 22px 18px; }
+
+  .quick-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s;
+    text-decoration: none;
+    margin-bottom: 8px;
+    width: 100%;
+  }
+
+  .quick-btn:hover {
+    border-color: var(--accent);
+    background: rgba(124,92,252,0.1);
+    transform: translateX(3px);
+  }
+
+  .quick-btn-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  /* DRIVERS STATUS */
+  .driver-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 22px;
+    transition: background 0.15s;
+  }
+
+  .driver-row:hover { background: rgba(255,255,255,0.02); }
+
+  .driver-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--surface3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .driver-info { flex: 1; min-width: 0; }
+
+  .driver-name {
+    font-size: 0.83rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .driver-sub {
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .online-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .online-dot.online  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .online-dot.offline { background: var(--faint); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 3px; }
+
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo">
+    <div class="dot"></div>
+    RideShare
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html" class="active">Overview</a></li>
+    <li><a href="commuter.html">Book a Ride</a></li>
+    <li><a href="driver.html">Drivers</a></li>
+    <li><a href="admin.html">Admin</a></li>
+    <li><a href="payments.html">Payments</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge-role">Admin</span>
+    <div class="avatar">AD</div>
+  </div>
+</nav>
+
+<div class="layout">
+  <aside>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Main</div>
+      <a href="index.html" class="sidebar-item active">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        Overview
+      </a>
+      <a href="commuter.html" class="sidebar-item">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+        Commuters
+        <span class="sidebar-count">12</span>
+      </a>
+      <a href="driver.html" class="sidebar-item">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9"/><path d="M12 12L8 8m4 4l4-4M12 12v5"/>
+        </svg>
+        Drivers
+        <span class="sidebar-count">8</span>
+      </a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Operations</div>
+      <a href="commuter.html" class="sidebar-item">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+        Live Rides
+        <span class="sidebar-count">3</span>
+      </a>
+      <a href="payments.html" class="sidebar-item">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+        </svg>
+        Payments
+      </a>
+      <a href="admin.html" class="sidebar-item">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+        Reports
+      </a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">System</div>
+      <div class="sidebar-item">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>
+        </svg>
+        Settings
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="page-header">
+      <h1 class="page-title">Good evening, Admin 👋</h1>
+      <p class="page-subtitle">Here's what's happening with RideShare today.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card" style="--card-accent: var(--accent)">
+        <div class="stat-label">
+          Total Rides
+          <div class="stat-icon" style="background:rgba(124,92,252,0.12)">🚗</div>
+        </div>
+        <div class="stat-value">248</div>
+        <div class="stat-delta up">↑ 12% from last week</div>
+      </div>
+      <div class="stat-card" style="--card-accent: var(--green)">
+        <div class="stat-label">
+          Active Drivers
+          <div class="stat-icon" style="background:rgba(34,211,160,0.1)">👤</div>
+        </div>
+        <div class="stat-value">6</div>
+        <div class="stat-delta up">↑ 2 online now</div>
+      </div>
+      <div class="stat-card" style="--card-accent: var(--amber)">
+        <div class="stat-label">
+          Revenue Today
+          <div class="stat-icon" style="background:rgba(245,158,11,0.1)">₹</div>
+        </div>
+        <div class="stat-value">₹4,820</div>
+        <div class="stat-delta up">↑ 8% vs yesterday</div>
+      </div>
+      <div class="stat-card" style="--card-accent: var(--red)">
+        <div class="stat-label">
+          Cancellations
+          <div class="stat-icon" style="background:rgba(244,63,94,0.1)">✕</div>
+        </div>
+        <div class="stat-value">14</div>
+        <div class="stat-delta down">↑ 3% vs yesterday</div>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="content-grid">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Recent Rides</span>
+          <a href="admin.html" class="card-action">View all →</a>
+        </div>
+        <table class="rides-table">
+          <thead>
+            <tr>
+              <th>Route</th>
+              <th>Driver</th>
+              <th>Status</th>
+              <th>Fare</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="route">
+                  <span class="route-from">Koramangala</span>
+                  <span class="route-to"><span class="route-arrow">→</span> Indiranagar</span>
+                </div>
+              </td>
+              <td style="color:var(--muted);font-size:0.82rem">Arjun K.</td>
+              <td><span class="status-badge status-COMPLETED">Completed</span></td>
+              <td><span class="fare">₹220</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="route">
+                  <span class="route-from">HSR Layout</span>
+                  <span class="route-to"><span class="route-arrow">→</span> MG Road</span>
+                </div>
+              </td>
+              <td style="color:var(--muted);font-size:0.82rem">Priya S.</td>
+              <td><span class="status-badge status-IN_PROGRESS">In Progress</span></td>
+              <td><span class="fare">₹310</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="route">
+                  <span class="route-from">Whitefield</span>
+                  <span class="route-to"><span class="route-arrow">→</span> Electronic City</span>
+                </div>
+              </td>
+              <td style="color:var(--muted);font-size:0.82rem">Ravi M.</td>
+              <td><span class="status-badge status-COMPLETED">Completed</span></td>
+              <td><span class="fare">₹480</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="route">
+                  <span class="route-from">BTM Layout</span>
+                  <span class="route-to"><span class="route-arrow">→</span> JP Nagar</span>
+                </div>
+              </td>
+              <td style="color:var(--muted);font-size:0.82rem">—</td>
+              <td><span class="status-badge status-CANCELLED">Cancelled</span></td>
+              <td><span class="fare" style="color:var(--muted)">—</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="route">
+                  <span class="route-from">Marathahalli</span>
+                  <span class="route-to"><span class="route-arrow">→</span> Bellandur</span>
+                </div>
+              </td>
+              <td style="color:var(--muted);font-size:0.82rem">Kavya R.</td>
+              <td><span class="status-badge status-DRIVER_ASSIGNED">Assigned</span></td>
+              <td><span class="fare">₹175</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Activity feed -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Live Activity</span>
+          <span style="font-size:0.72rem;color:var(--green);display:flex;align-items:center;gap:5px">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;animation:pulse 2s infinite"></span>
+            Live
+          </span>
+        </div>
+        <div class="activity-list">
+          <div class="activity-item">
+            <div class="activity-dot" style="background:var(--green)"></div>
+            <div>
+              <div class="activity-text">Ride #248 completed — Koramangala → Indiranagar</div>
+              <div class="activity-time">Just now</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot" style="background:var(--accent2)"></div>
+            <div>
+              <div class="activity-text">Driver Priya S. picked up commuter at HSR Layout</div>
+              <div class="activity-time">2 min ago</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot" style="background:var(--amber)"></div>
+            <div>
+              <div class="activity-text">New ride request — Marathahalli to Bellandur</div>
+              <div class="activity-time">4 min ago</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot" style="background:var(--red)"></div>
+            <div>
+              <div class="activity-text">Ride #244 cancelled by commuter</div>
+              <div class="activity-time">8 min ago</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot" style="background:var(--green)"></div>
+            <div>
+              <div class="activity-text">Payment of ₹480 confirmed — UPI</div>
+              <div class="activity-time">11 min ago</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot" style="background:var(--accent)"></div>
+            <div>
+              <div class="activity-text">Driver Arjun K. came online</div>
+              <div class="activity-time">18 min ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom row -->
+    <div class="bottom-grid">
+      <!-- Chart -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Rides This Week</span>
+        </div>
+        <div class="chart-bars">
+          <div class="bar-wrap">
+            <div class="bar" style="height:40%"></div>
+            <span class="bar-label">Mon</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar" style="height:65%"></div>
+            <span class="bar-label">Tue</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar" style="height:50%"></div>
+            <span class="bar-label">Wed</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar" style="height:80%"></div>
+            <span class="bar-label">Thu</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar" style="height:72%"></div>
+            <span class="bar-label">Fri</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar active" style="height:100%"></div>
+            <span class="bar-label" style="color:var(--accent2)">Sat</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar" style="height:30%"></div>
+            <span class="bar-label">Sun</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Quick Actions</span>
+        </div>
+        <div class="quick-actions">
+          <a href="commuter.html" class="quick-btn">
+            <div class="quick-btn-icon" style="background:rgba(124,92,252,0.15)">🚗</div>
+            Book a new ride
+          </a>
+          <a href="driver.html" class="quick-btn">
+            <div class="quick-btn-icon" style="background:rgba(34,211,160,0.1)">👤</div>
+            Add driver
+          </a>
+          <a href="payments.html" class="quick-btn">
+            <div class="quick-btn-icon" style="background:rgba(245,158,11,0.1)">₹</div>
+            View payments
+          </a>
+          <a href="admin.html" class="quick-btn">
+            <div class="quick-btn-icon" style="background:rgba(244,63,94,0.1)">📊</div>
+            Generate report
+          </a>
+        </div>
+      </div>
+
+      <!-- Drivers online -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Driver Status</span>
+          <a href="driver.html" class="card-action">Manage →</a>
+        </div>
+        <div style="padding: 8px 0;">
+          <div class="driver-row">
+            <div class="driver-avatar" style="background:rgba(124,92,252,0.2);color:var(--accent2)">AK</div>
+            <div class="driver-info">
+              <div class="driver-name">Arjun Kumar</div>
+              <div class="driver-sub">KA-01-AB-1234 · Sedan</div>
+            </div>
+            <div class="online-dot online"></div>
+          </div>
+          <div class="driver-row">
+            <div class="driver-avatar" style="background:rgba(34,211,160,0.1);color:var(--green)">PS</div>
+            <div class="driver-info">
+              <div class="driver-name">Priya Sharma</div>
+              <div class="driver-sub">KA-02-CD-5678 · SUV</div>
+            </div>
+            <div class="online-dot online"></div>
+          </div>
+          <div class="driver-row">
+            <div class="driver-avatar" style="background:rgba(245,158,11,0.1);color:var(--amber)">RM</div>
+            <div class="driver-info">
+              <div class="driver-name">Ravi Menon</div>
+              <div class="driver-sub">KA-03-EF-9012 · Auto</div>
+            </div>
+            <div class="online-dot offline"></div>
+          </div>
+          <div class="driver-row">
+            <div class="driver-avatar" style="background:rgba(192,132,252,0.1);color:#c084fc)">KR</div>
+            <div class="driver-info">
+              <div class="driver-name">Kavya Reddy</div>
+              <div class="driver-sub">KA-04-GH-3456 · Sedan</div>
+            </div>
+            <div class="online-dot online"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>
