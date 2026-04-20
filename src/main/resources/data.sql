@@ -129,3 +129,34 @@ INSERT INTO PLACE_DISTANCE (place_from, place_to, distance_km)
 VALUES ('BTM Layout', 'Jayanagar', 4.0);
 INSERT INTO PLACE_DISTANCE (place_from, place_to, distance_km)
 VALUES ('Jayanagar', 'Marathahalli', 13.0);
+-- Reset ID sequence to avoid collision with seeded data
+ALTER TABLE USERS
+ALTER COLUMN ID RESTART WITH 100;
+-- Reset vehicle sequence
+ALTER TABLE VEHICLE
+ALTER COLUMN ID RESTART WITH 100;
+-- Seed Vehicles (linked to seeded drivers)
+INSERT INTO VEHICLE (license_plate, model, type, active, driver_id)
+VALUES (
+        'KA-01-AB-1234',
+        'Toyota Etios',
+        'Sedan',
+        TRUE,
+        3
+    );
+INSERT INTO VEHICLE (license_plate, model, type, active, driver_id)
+VALUES (
+        'KA-02-CD-5678',
+        'Mahindra XUV',
+        'SUV',
+        TRUE,
+        4
+    );
+INSERT INTO VEHICLE (license_plate, model, type, active, driver_id)
+VALUES (
+        'KA-03-EF-9012',
+        'Bajaj RE',
+        'Auto',
+        TRUE,
+        5
+    );

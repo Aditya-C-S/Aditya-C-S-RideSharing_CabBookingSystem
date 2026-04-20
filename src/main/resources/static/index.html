@@ -695,7 +695,7 @@
 
   <main>
     <div class="page-header">
-      <h1 class="page-title">Good evening, Admin 👋</h1>
+      <h1 class="page-title" id="greeting-title">Good evening!!</h1>
       <p class="page-subtitle">Here's what's happening with RideShare today.</p>
     </div>
 
@@ -1000,6 +1000,13 @@
   <script>
     const _badge = document.querySelector('.badge-role');
     if (_badge) _badge.textContent = sessionStorage.getItem('userRole') || 'Guest';
+    
+    // Dynamic greeting
+    const _name = sessionStorage.getItem('userName') || 'there';
+    const _hour = new Date().getHours();
+    const _timeGreet = _hour < 12 ? 'Good morning' : _hour < 17 ? 'Good afternoon' : 'Good evening';
+    const _greetEl = document.getElementById('greeting-title');
+    if (_greetEl) _greetEl.textContent = `${_timeGreet}, ${_name} 👋`;
     // Redirect to login if not authenticated
     if (!sessionStorage.getItem('userId')) {
       window.location.href = 'login.html';
