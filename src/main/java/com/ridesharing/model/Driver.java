@@ -1,8 +1,10 @@
 package com.ridesharing.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Driver extends User {
     private String licenseNumber;
     private boolean available;
@@ -21,4 +23,9 @@ public class Driver extends User {
     public void setLicenseNumber(String licenseNumber) { 
         this.licenseNumber = licenseNumber; 
     }
+
+    @Override public void setEmail(String email) { super.setEmail(email); }
+    @Override public void setPhone(String phone) { super.setPhone(phone); }
+    @Override public void setPassword(String password) { super.setPassword(password); }
+    @Override public void setName(String name) { super.setName(name); }
 }

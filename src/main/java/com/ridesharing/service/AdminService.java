@@ -40,6 +40,7 @@ public class AdminService {
 
     // Add driver
     public Driver addDriver(Driver driver) {
+        driver.setAvailable(true);
         return driverRepository.save(driver);
     }
 

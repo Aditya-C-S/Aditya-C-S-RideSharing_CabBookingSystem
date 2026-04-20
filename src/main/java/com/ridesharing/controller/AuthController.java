@@ -22,6 +22,35 @@ public class AuthController {
     @Autowired
     private AdminRepository adminRepository;
 
+    @PostMapping("/signup")
+public ResponseEntity<?> signup(@RequestBody Map<String, String> body) {
+    String name     = body.get("name");
+    String email    = body.get("email");
+    String phone    = body.get("phone");
+    String password = body.get("password");
+    String role     = body.get("role"); // "commuter" or "driver"
+    String license  = body.get("licenseNumber"); // only for driver
+
+    try {
+        if ("driver".equals(role)) {
+            Driver d = new Driver();
+            d.setName(name); d.setEmail(email);
+            d.setPhone(phone); d.setPassword(password);
+            d.setLicenseNumber(license); d.setAvailable(true);
+            driverRepository.save(d);
+            return ResponseEntity.ok(Map.of("message", "Driver registered", "role", "driver"));
+        } else {
+            Commuter c = new Commuter();
+            c.setName(name); c.setEmail(email);
+            c.setPhone(phone); c.setPassword(password);
+            commuterRepository.save(c);
+            return ResponseEntity.ok(Map.of("message", "Commuter registered", "role", "commuter"));
+        }
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body(Map.of("error", "Email already exists or invalid data"));
+    }
+}
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
         String email    = body.get("email");

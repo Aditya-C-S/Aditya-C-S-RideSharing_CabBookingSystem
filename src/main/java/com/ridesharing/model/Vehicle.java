@@ -1,6 +1,7 @@
 package com.ridesharing.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 public class Vehicle {
@@ -14,22 +15,23 @@ public class Vehicle {
     private String type;
     private boolean active;
 
-    public Vehicle() {}
+    @ManyToOne
+    @JoinColumn(name = "driver_id")
+    @JsonIgnoreProperties({"password", "licenseNumber", "available"})
+    private Driver driver;
 
-    public Vehicle(String licensePlate, String model, String type) {
-        this.licensePlate = licensePlate;
-        this.model = model;
-        this.type = type;
-        this.active = true;
-    }
+    public Vehicle() {}
 
     public Long getId() { return id; }
     public String getLicensePlate() { return licensePlate; }
     public String getModel() { return model; }
     public String getType() { return type; }
     public boolean isActive() { return active; }
+    public Driver getDriver() { return driver; }
+
     public void setActive(boolean active) { this.active = active; }
-    public void setLicensePlate(String licensePlate) { this.licensePlate = licensePlate; }
+    public void setLicensePlate(String lp) { this.licensePlate = lp; }
     public void setModel(String model) { this.model = model; }
     public void setType(String type) { this.type = type; }
+    public void setDriver(Driver driver) { this.driver = driver; }
 }

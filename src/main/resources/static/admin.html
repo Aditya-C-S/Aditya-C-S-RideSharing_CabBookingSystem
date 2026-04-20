@@ -165,6 +165,14 @@
         </svg>
         Payments
       </a>
+      <a href="#fleet-vehicles" class="sidebar-item">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="3" width="15" height="13" rx="1"/>
+          <path d="M16 8h4l3 5v3h-7V8z"/>
+          <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+        </svg>
+        Fleet Vehicles
+      </a>
     </div>
   </aside>
 
@@ -298,31 +306,96 @@
         </div>
       </div>
     </div>
+    <!-- Fleet Vehicles -->
+      <div id="fleet-vehicles" style="margin-top:28px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <span style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700">Fleet Vehicles</span>
+          <button onclick="openVehicleModal()" style="padding:9px 18px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer">+ Add Vehicle</button>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden">
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border)">
+                <th style="padding:12px 16px;text-align:left;font-size:0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted)">License Plate</th>
+                <th style="padding:12px 16px;text-align:left;font-size:0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted)">Model</th>
+                <th style="padding:12px 16px;text-align:left;font-size:0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted)">Type</th>
+                <th style="padding:12px 16px;text-align:left;font-size:0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted)">Assigned Driver</th>
+                <th style="padding:12px 16px;text-align:left;font-size:0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted)">Action</th>
+              </tr>
+            </thead>
+            <tbody id="vehicle-list">
+              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px;font-size:0.85rem">Loading vehicles...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Add Vehicle Modal -->
+      <div id="vehicle-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center">
+        <div style="background:var(--surface);border:1px solid var(--border-hover);border-radius:18px;width:460px;max-width:92vw;padding:24px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <span style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700">Add Vehicle</span>
+            <button onclick="closeVehicleModal()" style="background:var(--surface2);border:none;color:var(--muted);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:1.1rem">×</button>
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin-bottom:7px">License Plate</label>
+            <input type="text" id="v-plate" placeholder="KA-01-AB-1234" style="width:100%;padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.9rem;outline:none">
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Model</label>
+            <input type="text" id="v-model" placeholder="Toyota Innova" style="width:100%;padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.9rem;outline:none">
+          </div>
+          <div style="margin-bottom:20px">
+            <label style="display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Type</label>
+            <select id="v-type" style="width:100%;padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.9rem;outline:none">
+              <option value="Sedan">Sedan</option>
+              <option value="SUV">SUV</option>
+              <option value="Auto">Auto</option>
+            </select>
+          </div>
+          <div style="margin-bottom:20px">
+            <label style="display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Assign to Driver (optional)</label>
+            <select id="v-driver" style="width:100%;padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.9rem;outline:none">
+              <option value="">— Unassigned —</option>
+            </select>
+          </div>
+          <button onclick="addVehicle()" style="width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;color:#fff;font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer">Add Vehicle</button>
+        </div>
+      </div>
   </main>
 </div>
 
 <script>
+  // Auth guard
   if (!sessionStorage.getItem('userId')) window.location.href = 'login.html';
   const _srole = sessionStorage.getItem('userRole');
   if (_srole !== 'admin') { alert('Please log in as an Admin.'); window.location.href = 'login.html'; }
+
+  // Set avatar + badge from session
+  const _uname = sessionStorage.getItem('userName') || 'AD';
   const _avatar = document.querySelector('.avatar');
   if (_avatar) {
-    _avatar.style.cursor = 'pointer';
-    _avatar.title = 'Logout — ' + (sessionStorage.getItem('userName') || '');
+    _avatar.textContent = _uname.split(' ').map(n => n[0]).join('').toUpperCase();
+    _avatar.title = 'Logout — ' + _uname;
     _avatar.onclick = () => { sessionStorage.clear(); window.location.href = 'login.html'; };
   }
   const _badge = document.querySelector('.badge-role');
-  if (_badge) _badge.textContent = sessionStorage.getItem('userRole') || 'Guest';
-  
+  if (_badge) _badge.textContent = sessionStorage.getItem('userRole') || '';
+
+  function logout() { sessionStorage.clear(); window.location.href = 'login.html'; }
+
+  const API = 'http://localhost:8080/api';   // ← THIS WAS MISSING
+
+  // ── Rides table (hardcoded for now) ──────────────────────────
   const ridesData = [
-    {id:248, commuter:'Rahul Kumar',  from:'Koramangala',  to:'Indiranagar',      driver:'Arjun K.', status:'COMPLETED',     fare:220},
-    {id:247, commuter:'Anjali Singh', from:'HSR Layout',   to:'MG Road',          driver:'Priya S.', status:'IN_PROGRESS',   fare:310},
-    {id:246, commuter:'Mohan Das',    from:'Whitefield',   to:'Electronic City',  driver:'Ravi M.',  status:'COMPLETED',     fare:480},
-    {id:245, commuter:'Sneha Pillai', from:'BTM Layout',   to:'JP Nagar',         driver:'—',        status:'CANCELLED',     fare:0},
+    {id:248, commuter:'Rahul Kumar',  from:'Koramangala',  to:'Indiranagar',      driver:'Arjun K.', status:'COMPLETED',      fare:220},
+    {id:247, commuter:'Anjali Singh', from:'HSR Layout',   to:'MG Road',          driver:'Priya S.', status:'IN_PROGRESS',    fare:310},
+    {id:246, commuter:'Mohan Das',    from:'Whitefield',   to:'Electronic City',  driver:'Ravi M.',  status:'COMPLETED',      fare:480},
+    {id:245, commuter:'Sneha Pillai', from:'BTM Layout',   to:'JP Nagar',         driver:'—',        status:'CANCELLED',      fare:0},
     {id:244, commuter:'Rahul Kumar',  from:'Marathahalli', to:'Bellandur',        driver:'Kavya R.', status:'DRIVER_ASSIGNED',fare:175},
-    {id:243, commuter:'Anjali Singh', from:'Jayanagar',    to:'Banashankari',     driver:'Arjun K.', status:'COMPLETED',     fare:130},
-    {id:242, commuter:'Mohan Das',    from:'Yelahanka',    to:'Hebbal',           driver:'Ravi M.',  status:'COMPLETED',     fare:210},
-    {id:241, commuter:'Sneha Pillai', from:'Rajajinagar',  to:'Malleshwaram',     driver:'Deepa R.', status:'COMPLETED',     fare:95},
+    {id:243, commuter:'Anjali Singh', from:'Jayanagar',    to:'Banashankari',     driver:'Arjun K.', status:'COMPLETED',      fare:130},
+    {id:242, commuter:'Mohan Das',    from:'Yelahanka',    to:'Hebbal',           driver:'Ravi M.',  status:'COMPLETED',      fare:210},
+    {id:241, commuter:'Sneha Pillai', from:'Rajajinagar',  to:'Malleshwaram',     driver:'Deepa R.', status:'COMPLETED',      fare:95},
   ];
 
   let currentFilter = 'ALL';
@@ -334,53 +407,96 @@
       <tr>
         <td style="color:var(--muted);font-size:0.8rem">#${r.id}</td>
         <td style="font-weight:500">${r.commuter}</td>
-        <td>
-          <div class="td-route">
-            <span class="td-from">${r.from}</span>
-            <span class="td-to">→ ${r.to}</span>
-          </div>
-        </td>
+        <td><div class="td-route"><span class="td-from">${r.from}</span><span class="td-to">→ ${r.to}</span></div></td>
         <td style="color:var(--muted);font-size:0.83rem">${r.driver}</td>
         <td><span class="status-badge status-${r.status}">${r.status.replace('_',' ')}</span></td>
         <td><span class="fare-cell">${r.fare ? '₹'+r.fare : '—'}</span></td>
-      </tr>
-    `).join('');
+      </tr>`).join('');
   }
 
   function filterRides(el, filter) {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     el.classList.add('active');
-    currentFilter = filter;
     renderRides(filter);
   }
 
   function generateReport() {
     const completed = ridesData.filter(r => r.status === 'COMPLETED').length;
-    const revenue = ridesData.filter(r => r.status === 'COMPLETED').reduce((s,r) => s + r.fare, 0);
-    alert(`System Report\n─────────────\nTotal Rides: ${ridesData.length}\nCompleted: ${completed}\nCancelled: ${ridesData.filter(r=>r.status==='CANCELLED').length}\nTotal Revenue: ₹${revenue}\n\nReport generated at ${new Date().toLocaleTimeString()}`);
+    const revenue   = ridesData.filter(r => r.status === 'COMPLETED').reduce((s,r) => s + r.fare, 0);
+    alert(`System Report\n─────────────\nTotal Rides: ${ridesData.length}\nCompleted: ${completed}\nCancelled: ${ridesData.filter(r=>r.status==='CANCELLED').length}\nTotal Revenue: ₹${revenue}\n\nGenerated at ${new Date().toLocaleTimeString()}`);
   }
 
+  // ── Vehicles ─────────────────────────────────────────────────
+  async function loadVehicles() {
+    const tbody = document.getElementById('vehicle-list');
+    try {
+      const res = await fetch(`${API}/admin/vehicles`);
+      const vehicles = await res.json();
+      if (!vehicles.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px;font-size:0.85rem">No vehicles added yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = vehicles.map(v => `
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:12px 16px;font-size:0.85rem">${v.licensePlate}</td>
+          <td style="padding:12px 16px;font-size:0.85rem">${v.model}</td>
+          <td style="padding:12px 16px;font-size:0.85rem">${v.type}</td>
+          <td style="padding:12px 16px;font-size:0.85rem;color:${v.driver ? 'var(--green)' : 'var(--muted)'}">
+            ${v.driver ? v.driver.name : 'Unassigned'}
+          </td>
+          <td style="padding:12px 16px">
+            <button onclick="deleteVehicle(${v.id})" style="background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.2);color:var(--red);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:0.78rem">Remove</button>
+          </td>
+        </tr>`).join('');
+    } catch(e) {
+      tbody.innerHTML = '<tr><td colspan="5" style="color:var(--red);padding:16px">Could not load — is server running?</td></tr>';
+    }
+  }
+
+  async function openVehicleModal() {
+    // Load drivers into dropdown
+    try {
+      const res = await fetch(`${API}/drivers`);
+      const drivers = await res.json();
+      const sel = document.getElementById('v-driver');
+      sel.innerHTML = '<option value="">— Unassigned —</option>' +
+        drivers.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    } catch(e) {}
+    document.getElementById('vehicle-modal').style.display = 'flex';  // ← FIXED
+  }
+
+  function closeVehicleModal() {
+    document.getElementById('vehicle-modal').style.display = 'none';  // ← FIXED
+  }
+
+  async function addVehicle() {
+    const plate    = document.getElementById('v-plate').value.trim();
+    const model    = document.getElementById('v-model').value.trim();
+    const type     = document.getElementById('v-type').value;
+    const driverId = document.getElementById('v-driver').value;
+    if (!plate || !model) { alert('Please fill in license plate and model.'); return; }
+    try {
+      const res = await fetch(`${API}/admin/vehicles`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ licensePlate: plate, model, type, driverId: driverId || null })
+      });
+      if (!res.ok) throw new Error('Server error ' + res.status);
+      closeVehicleModal();
+      document.getElementById('v-plate').value = '';
+      document.getElementById('v-model').value = '';
+      loadVehicles();
+    } catch(e) { alert('Failed to add vehicle: ' + e.message); }
+  }
+
+  async function deleteVehicle(id) {
+    if (!confirm('Remove this vehicle?')) return;
+    await fetch(`${API}/admin/vehicles/${id}`, { method: 'DELETE' });
+    loadVehicles();
+  }
+
+  // ── Init ─────────────────────────────────────────────────────
   renderRides('ALL');
-</script>
-<script>
-  // Redirect to login if not authenticated
-  if (!sessionStorage.getItem('userId')) {
-    window.location.href = 'login.html';
-  }
-
-  // Show user name in nav
-  const userName = sessionStorage.getItem('userName');
-  const userRole = sessionStorage.getItem('userRole');
-  const avatarEl = document.querySelector('.avatar');
-  if (avatarEl && userName) {
-    avatarEl.textContent = userName.split(' ').map(n => n[0]).join('').toUpperCase();
-    avatarEl.title = userName + ' (' + userRole + ')';
-  }
-
-  function logout() {
-    sessionStorage.clear();
-    window.location.href = 'login.html';
-  }
+  loadVehicles();
 </script>
 </body>
 </html>
