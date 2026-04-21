@@ -142,9 +142,9 @@
   <ul class="nav-links">
     <li><a href="index.html">Overview</a></li>
     <li><a href="commuter.html" class="active">Book a Ride</a></li>
-    <li><a href="driver.html">Drivers</a></li>
+    <!-- <li><a href="driver.html">Drivers</a></li>
     <li><a href="admin.html">Admin</a></li>
-    <li><a href="payments.html">Payments</a></li>
+    <li><a href="payments.html">Payments</a></li> -->
   </ul>
   <div class="nav-right">
     <span class="badge-role">Commuter</span>
@@ -310,6 +310,26 @@
   if (!sessionStorage.getItem('userId')) window.location.href = 'login.html';
   const _sid   = sessionStorage.getItem('userId');
   const _srole = sessionStorage.getItem('userRole');
+  // ── Role-based nav/sidebar hiding ──────────────────────────
+  (function applyRoleVisibility() {
+    const role = sessionStorage.getItem('userRole');
+    if (!role) return;
+
+    const rules = {
+      commuter: ['driver.html', 'admin.html', 'payments.html'],
+      driver:   ['commuter.html', 'admin.html', 'payments.html']
+      // admin sees everything — no rules
+    };
+
+    const hidden = rules[role] || [];
+    hidden.forEach(page => {
+      document.querySelectorAll(`a[href="${page}"]`).forEach(a => {
+        // hide the <li> if it's a nav link, else hide the <a> itself (sidebar)
+        const target = a.closest('li') || a;
+        target.style.display = 'none';
+      });
+    });
+  })();
   if (_srole !== 'commuter' && _srole !== 'admin') { alert('Access denied.'); window.location.href = 'login.html'; }
 
   if (_sid && _srole === 'commuter') document.getElementById('commuter-id').value = _sid;
