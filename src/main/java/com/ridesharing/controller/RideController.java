@@ -55,6 +55,12 @@ public class RideController {
         return ResponseEntity.ok(ride);
     }
 
+    @PostMapping("/{rideId}/accept")
+    public ResponseEntity<Ride> acceptRide(@PathVariable Long rideId) {
+        Ride ride = rideService.acceptRide(rideId);
+        return ResponseEntity.ok(ride);
+    }
+
     @GetMapping
     public ResponseEntity<List<Ride>> getAllRides() {
         return ResponseEntity.ok(rideService.getAllRides());
@@ -85,5 +91,10 @@ public class RideController {
             .orElse(10.0);
         double fare = baseFare + (perKm * km);
         return ResponseEntity.ok(java.util.Map.of("distanceKm", km, "fare", fare));
+    }
+
+    @GetMapping("/driver/{driverId}")
+    public ResponseEntity<List<Ride>> getRidesByDriver(@PathVariable Long driverId) {
+        return ResponseEntity.ok(rideService.getRidesByDriver(driverId));
     }
 }
