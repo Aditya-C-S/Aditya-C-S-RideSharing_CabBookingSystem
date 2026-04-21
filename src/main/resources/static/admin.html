@@ -247,65 +247,6 @@
       </table>
     </div>
 
-    <!-- Commuters + Drivers -->
-    <div class="two-col-section">
-      <div>
-        <div class="section-header" style="margin-bottom:12px">
-          <span class="section-title">Commuters</span>
-          <a href="commuter.html" style="font-size:0.8rem;color:var(--accent2);text-decoration:none">Manage →</a>
-        </div>
-        <div class="table-card">
-          <div class="user-row">
-            <div class="user-av" style="background:rgba(124,92,252,0.15);color:var(--accent2)">RK</div>
-            <div class="user-info"><div class="user-name">Rahul Kumar</div><div class="user-email">rahul@example.com</div></div>
-            <span class="user-rides">24 rides</span>
-          </div>
-          <div class="user-row">
-            <div class="user-av" style="background:rgba(34,211,160,0.12);color:var(--green)">AS</div>
-            <div class="user-info"><div class="user-name">Anjali Singh</div><div class="user-email">anjali@example.com</div></div>
-            <span class="user-rides">18 rides</span>
-          </div>
-          <div class="user-row">
-            <div class="user-av" style="background:rgba(245,158,11,0.1);color:var(--amber)">MD</div>
-            <div class="user-info"><div class="user-name">Mohan Das</div><div class="user-email">mohan@example.com</div></div>
-            <span class="user-rides">11 rides</span>
-          </div>
-          <div class="user-row">
-            <div class="user-av" style="background:rgba(244,63,94,0.1);color:var(--red)">SP</div>
-            <div class="user-info"><div class="user-name">Sneha Pillai</div><div class="user-email">sneha@example.com</div></div>
-            <span class="user-rides">7 rides</span>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="section-header" style="margin-bottom:12px">
-          <span class="section-title">Top Drivers</span>
-          <a href="driver.html" style="font-size:0.8rem;color:var(--accent2);text-decoration:none">Manage →</a>
-        </div>
-        <div class="table-card">
-          <div class="user-row">
-            <div class="user-av" style="background:rgba(124,92,252,0.18);color:var(--accent2)">AK</div>
-            <div class="user-info"><div class="user-name">Arjun Kumar</div><div class="user-email">KA-01-AB-1234 · Sedan</div></div>
-            <span class="user-rides">⭐ 4.8</span>
-          </div>
-          <div class="user-row">
-            <div class="user-av" style="background:rgba(34,211,160,0.12);color:var(--green)">KR</div>
-            <div class="user-info"><div class="user-name">Kavya Reddy</div><div class="user-email">KA-04-GH-3456 · Sedan</div></div>
-            <span class="user-rides">⭐ 4.9</span>
-          </div>
-          <div class="user-row">
-            <div class="user-av" style="background:rgba(245,158,11,0.1);color:var(--amber)">PS</div>
-            <div class="user-info"><div class="user-name">Priya Sharma</div><div class="user-email">KA-02-CD-5678 · SUV</div></div>
-            <span class="user-rides">⭐ 4.6</span>
-          </div>
-          <div class="user-row">
-            <div class="user-av" style="background:rgba(56,189,248,0.1);color:#38bdf8">DR</div>
-            <div class="user-info"><div class="user-name">Deepa Raj</div><div class="user-email">KA-06-KL-1234 · Auto</div></div>
-            <span class="user-rides">⭐ 4.7</span>
-          </div>
-        </div>
-      </div>
-    </div>
     <!-- Fleet Vehicles -->
       <div id="fleet-vehicles" style="margin-top:28px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
@@ -370,6 +311,27 @@
   if (!sessionStorage.getItem('userId')) window.location.href = 'login.html';
   const _srole = sessionStorage.getItem('userRole');
   if (_srole !== 'admin') { alert('Please log in as an Admin.'); window.location.href = 'login.html'; }
+
+  // ── Role-based nav/sidebar hiding ──────────────────────────
+  (function applyRoleVisibility() {
+    const role = sessionStorage.getItem('userRole');
+    if (!role) return;
+
+    const rules = {
+      commuter: ['driver.html', 'admin.html', 'payments.html'],
+      driver:   ['commuter.html', 'admin.html', 'payments.html']
+      // admin sees everything — no rules
+    };
+
+    const hidden = rules[role] || [];
+    hidden.forEach(page => {
+      document.querySelectorAll(`a[href="${page}"]`).forEach(a => {
+        // hide the <li> if it's a nav link, else hide the <a> itself (sidebar)
+        const target = a.closest('li') || a;
+        target.style.display = 'none';
+      });
+    });
+  })();
 
   // Set avatar + badge from session
   const _uname = sessionStorage.getItem('userName') || 'AD';

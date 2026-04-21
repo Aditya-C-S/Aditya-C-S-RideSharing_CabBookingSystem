@@ -125,10 +125,10 @@
   <a href="index.html" class="nav-logo"><div class="dot"></div>RideShare</a>
   <ul class="nav-links">
     <li><a href="index.html">Overview</a></li>
-    <li><a href="commuter.html">Book a Ride</a></li>
     <li><a href="driver.html" class="active">Drivers</a></li>
-    <li><a href="admin.html">Admin</a></li>
-    <li><a href="payments.html">Payments</a></li>
+    <!-- <li><a href="commuter.html">Book a Ride</a></li> -->
+    <!-- <li><a href="admin.html">Admin</a></li>
+    <li><a href="payments.html">Payments</a></li> -->
   </ul>
   <div class="nav-right">
     <span class="badge-role">Driver</span>
@@ -143,10 +143,6 @@
       <a href="driver.html" class="sidebar-item active">
         <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
         All Drivers
-      </a>
-      <a href="admin.html" class="sidebar-item">
-        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        Dashboard
       </a>
     </div>
   </aside>
@@ -385,6 +381,27 @@
   if (!sessionStorage.getItem('userId')) {
     window.location.href = 'login.html';
   }
+
+  // ── Role-based nav/sidebar hiding ──────────────────────────
+  (function applyRoleVisibility() {
+    const role = sessionStorage.getItem('userRole');
+    if (!role) return;
+
+    const rules = {
+      commuter: ['driver.html', 'admin.html', 'payments.html'],
+      driver:   ['commuter.html', 'admin.html', 'payments.html']
+      // admin sees everything — no rules
+    };
+
+    const hidden = rules[role] || [];
+    hidden.forEach(page => {
+      document.querySelectorAll(`a[href="${page}"]`).forEach(a => {
+        // hide the <li> if it's a nav link, else hide the <a> itself (sidebar)
+        const target = a.closest('li') || a;
+        target.style.display = 'none';
+      });
+    });
+  })();
 
   // Show user name in nav
   const userName = sessionStorage.getItem('userName');

@@ -945,21 +945,133 @@
   </main>
 </div>
   <script>
-  // Auth guard
+  // ── Auth guard ──────────────────────────────────────────────
   if (!sessionStorage.getItem('userId')) {
     window.location.href = 'login.html';
   }
 
-  // const userName = sessionStorage.getItem('userName');
-  // const avatarEl = document.querySelector('.avatar');
+  // ── Read session ────────────────────────────────────────────
+  const userName = sessionStorage.getItem('userName') || 'there';
+  const userRole = sessionStorage.getItem('userRole') || 'commuter';
+  const avatarEl = document.querySelector('.avatar');
+
+  // ── Dynamic greeting ────────────────────────────────────────
+  const _hour = new Date().getHours();
+  const _timeGreet = _hour < 12 ? 'Good morning' : _hour < 17 ? 'Good afternoon' : 'Good evening';
+  const _greetEl = document.getElementById('greeting-title');
+  if (_greetEl) _greetEl.textContent = `${_timeGreet}, ${userName} 👋`;
+
+  // ── Avatar + badge ──────────────────────────────────────────
   if (avatarEl && userName) {
     avatarEl.textContent = userName.split(' ').map(n => n[0]).join('').toUpperCase();
-    avatarEl.style.cursor = 'pointer';
-    avatarEl.title = 'Logout';
-    avatarEl.onclick = () => { sessionStorage.clear(); window.location.href = 'login.html'; };
+    avatarEl.title = userName + ' (' + userRole + ')';
   }
+  const _badgeEl = document.querySelector('.badge-role');
+  if (_badgeEl) _badgeEl.textContent = userRole.charAt(0).toUpperCase() + userRole.slice(1);
 
-  // Load live driver status
+  // ── Role-based nav ──────────────────────────────────────────
+  const navByRole = {
+    commuter: `
+      <li><a href="index.html" class="active">Overview</a></li>
+      <li><a href="commuter.html">Book a Ride</a></li>`,
+    driver: `
+      <li><a href="index.html" class="active">Overview</a></li>
+      <li><a href="driver.html">Drivers</a></li>`,
+    admin: `
+      <li><a href="index.html" class="active">Overview</a></li>
+      <li><a href="commuter.html">Book a Ride</a></li>
+      <li><a href="driver.html">Drivers</a></li>
+      <li><a href="admin.html">Admin</a></li>
+      <li><a href="payments.html">Payments</a></li>`
+  };
+
+  // ── Role-based sidebar ──────────────────────────────────────
+  const sidebarByRole = {
+    commuter: `
+      <div class="sidebar-section">
+        <div class="sidebar-label">Rides</div>
+        <a href="index.html" class="sidebar-item active">
+          <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          Overview
+        </a>
+        <a href="commuter.html" class="sidebar-item">
+          <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/>
+          </svg>
+          Book a Ride
+        </a>
+      </div>`,
+    driver: `
+      <div class="sidebar-section">
+        <div class="sidebar-label">Management</div>
+        <a href="index.html" class="sidebar-item active">
+          <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          Overview
+        </a>
+        <a href="driver.html" class="sidebar-item">
+          <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+          </svg>
+          Drivers
+        </a>
+      </div>`,
+    admin: `
+      <div class="sidebar-section">
+        <div class="sidebar-label">Main</div>
+        <a href="index.html" class="sidebar-item active">
+          <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          Overview
+        </a>
+        <a href="commuter.html" class="sidebar-item">
+          <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+          </svg>
+          Commuters
+        </a>
+        <a href="driver.html" class="sidebar-item">
+          <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9"/><path d="M12 12L8 8m4 4l4-4M12 12v5"/>
+          </svg>
+          Drivers
+        </a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Operations</div>
+        <a href="payments.html" class="sidebar-item">
+          <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+          </svg>
+          Payments
+        </a>
+        <a href="admin.html" class="sidebar-item">
+          <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          Admin
+        </a>
+      </div>`
+  };
+
+  document.querySelector('.nav-links').innerHTML = navByRole[userRole] || navByRole.admin;
+  document.querySelector('aside').innerHTML = sidebarByRole[userRole] || sidebarByRole.admin;
+
+  // ── Logout ──────────────────────────────────────────────────
+  function logout() {
+    sessionStorage.clear();
+    window.location.href = 'login.html';
+  }
+  if (avatarEl) avatarEl.onclick = logout;
+
+  // ── Load live driver status ─────────────────────────────────
   async function loadDriverStatus() {
     const list = document.getElementById('driver-status-list');
     try {
@@ -970,9 +1082,9 @@
         return;
       }
       const colors = [
-        {bg:'rgba(124,92,252,0.2)',color:'var(--accent2)'},
-        {bg:'rgba(34,211,160,0.1)',color:'var(--green)'},
-        {bg:'rgba(245,158,11,0.1)',color:'var(--amber)'},
+        {bg:'rgba(124,92,252,0.2)',  color:'var(--accent2)'},
+        {bg:'rgba(34,211,160,0.1)',  color:'var(--green)'},
+        {bg:'rgba(245,158,11,0.1)', color:'var(--amber)'},
         {bg:'rgba(192,132,252,0.1)',color:'#c084fc'},
       ];
       list.innerHTML = drivers.map((d, i) => {
@@ -997,34 +1109,5 @@
 
   loadDriverStatus();
 </script>
-  <script>
-    const _badge = document.querySelector('.badge-role');
-    if (_badge) _badge.textContent = sessionStorage.getItem('userRole') || 'Guest';
-    
-    // Dynamic greeting
-    const _name = sessionStorage.getItem('userName') || 'there';
-    const _hour = new Date().getHours();
-    const _timeGreet = _hour < 12 ? 'Good morning' : _hour < 17 ? 'Good afternoon' : 'Good evening';
-    const _greetEl = document.getElementById('greeting-title');
-    if (_greetEl) _greetEl.textContent = `${_timeGreet}, ${_name} 👋`;
-    // Redirect to login if not authenticated
-    if (!sessionStorage.getItem('userId')) {
-      window.location.href = 'login.html';
-    }
-
-    // Show user name in nav
-    const userName = sessionStorage.getItem('userName');
-    const userRole = sessionStorage.getItem('userRole');
-    const avatarEl = document.querySelector('.avatar');
-    if (avatarEl && userName) {
-      avatarEl.textContent = userName.split(' ').map(n => n[0]).join('').toUpperCase();
-      avatarEl.title = userName + ' (' + userRole + ')';
-    }
-
-    function logout() {
-      sessionStorage.clear();
-      window.location.href = 'login.html';
-    }
-  </script>
 </body>
 </html>
