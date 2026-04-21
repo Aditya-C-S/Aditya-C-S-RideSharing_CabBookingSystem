@@ -60,6 +60,18 @@ public class RideService {
         return rideRepository.save(ride);
     }
 
+    // Accept ride (driver confirms)
+    public Ride acceptRide(Long rideId) {
+        Ride ride = rideRepository.findById(rideId)
+            .orElseThrow(() -> new RuntimeException("Ride not found"));
+        // Only accept if a driver has been assigned
+        if (ride.getStatus() != RideStatus.DRIVER_ASSIGNED) {
+            throw new RuntimeException("Ride is not in DRIVER_ASSIGNED state");
+        }
+        ride.setStatus(RideStatus.IN_PROGRESS);
+        return rideRepository.save(ride);
+    }
+
     // End ride
     public Ride endRide(Long rideId) {
         Ride ride = rideRepository.findById(rideId)
@@ -76,6 +88,10 @@ public class RideService {
             driverRepository.save(driver);
         }
         return rideRepository.save(ride);
+    }
+    // Get rides by driver
+    public List<Ride> getRidesByDriver(Long driverId) {
+        return rideRepository.findByDriverId(driverId);
     }
 
     // Cancel ride

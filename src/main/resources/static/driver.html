@@ -159,6 +159,15 @@
       </div>
     </div>
 
+    <!-- Pending / Active Rides Panel — only shown to drivers -->
+    <div id="my-rides-panel" style="display:none;margin-bottom:28px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700">My Rides</span>
+        <button onclick="loadMyRides()" style="padding:6px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:0.8rem;cursor:pointer">↻ Refresh</button>
+      </div>
+      <div id="my-rides-list"></div>
+    </div>
+
     <div class="stats-row">
       <div class="stat-mini">
         <div class="stat-mini-label">Total</div>
@@ -235,6 +244,73 @@
 
   function initials(name) {
     return (name || '??').split(' ').map(n => n[0]).join('').toUpperCase();
+  }
+
+  const _driverId   = sessionStorage.getItem('userId');
+  const _driverRole = sessionStorage.getItem('userRole');
+
+  if (_driverRole === 'driver') {
+    document.getElementById('my-rides-panel').style.display = 'block';
+    loadMyRides();
+    setInterval(loadMyRides, 5000); // auto-refresh every 5s
+  }
+
+  async function loadMyRides() {
+    const list = document.getElementById('my-rides-list');
+    if (!list) return;
+    try {
+      const res  = await fetch(`${API}/rides/driver/${_driverId}`);
+      const rides = await res.json();
+      const active = rides.filter(r => r.status === 'DRIVER_ASSIGNED' || r.status === 'IN_PROGRESS');
+      if (!active.length) {
+        list.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:12px 0">No active rides assigned to you.</div>';
+        return;
+      }
+      list.innerHTML = active.map(r => `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div>
+            <div style="font-weight:600;font-size:0.9rem">Ride #${r.id}</div>
+            <div style="color:var(--muted);font-size:0.8rem;margin-top:3px">${r.pickupLocation} → ${r.dropLocation}</div>
+            <div style="font-size:0.75rem;margin-top:4px;color:${r.status === 'DRIVER_ASSIGNED' ? 'var(--amber)' : 'var(--green)'}">
+              ${r.status === 'DRIVER_ASSIGNED' ? '⏳ Awaiting your acceptance' : '🚗 Ride in progress'}
+            </div>
+          </div>
+          <div>
+            ${r.status === 'DRIVER_ASSIGNED' ? `
+              <button onclick="acceptRide(${r.id})"
+                style="padding:9px 18px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:9px;color:#fff;font-weight:700;font-size:0.82rem;cursor:pointer">
+                Accept Ride
+              </button>` : `
+              <button onclick="completeRide(${r.id})"
+                style="padding:9px 18px;background:rgba(34,211,160,0.15);border:1px solid var(--green);border-radius:9px;color:var(--green);font-weight:700;font-size:0.82rem;cursor:pointer">
+                Mark Complete
+              </button>`}
+          </div>
+        </div>
+      `).join('');
+    } catch(e) {
+      list.innerHTML = '<div style="color:var(--red);font-size:0.85rem">Failed to load rides.</div>';
+    }
+  }
+
+  async function acceptRide(rideId) {
+    try {
+      await fetch(`${API}/rides/${rideId}/accept`, { method: 'POST' });
+      loadMyRides();  // refresh panel
+      loadDrivers();  // refresh grid so badge turns amber
+    } catch(e) {
+      alert('Failed to accept ride.');
+    }
+  }
+
+  async function completeRide(rideId) {
+    try {
+      await fetch(`${API}/rides/${rideId}/end`, { method: 'POST' });
+      loadMyRides();  // panel clears
+      loadDrivers();  // badge turns green again
+    } catch(e) {
+      alert('Failed to complete ride.');
+    }
   }
 
   async function loadDrivers() {

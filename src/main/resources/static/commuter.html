@@ -292,6 +292,33 @@
           </div>
         </div>
 
+        <!-- Payment panel shown after ride completion -->
+        <div id="payment-panel" style="display:none;margin-top:20px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px">
+        <h3 style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;margin-bottom:6px">Complete Your Payment</h3>
+        <p style="color:var(--muted);font-size:0.82rem;margin-bottom:20px">Your ride is done! Pay to unlock the next booking.</p>
+
+        <div style="margin-bottom:16px">
+          <div style="font-size:0.72rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Select Payment Method</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div class="pay-opt selected" onclick="selectPanelPayment(this,'UPI')"><span class="pay-icon">📱</span>UPI</div>
+            <div class="pay-opt" onclick="selectPanelPayment(this,'Card')"><span class="pay-icon">💳</span>Card</div>
+            <div class="pay-opt" onclick="selectPanelPayment(this,'Cash')"><span class="pay-icon">💵</span>Cash</div>
+            <div class="pay-opt" onclick="selectPanelPayment(this,'Wallet')"><span class="pay-icon">👜</span>Wallet</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--surface2);border-radius:10px;margin-bottom:16px">
+          <span style="color:var(--muted);font-size:0.85rem">Amount Due</span>
+          <span id="panel-fare-display" style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;color:var(--green)">₹—</span>
+        </div>
+
+        <button id="pay-now-btn" onclick="processPaymentAndReset()"
+          style="width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer">
+          Pay Now →
+        </button>
+        <div id="pay-status" style="margin-top:10px;font-size:0.82rem;color:var(--green);text-align:center;display:none"></div>
+      </div>
+
         <!-- Ride history -->
         <div class="card">
           <div class="card-header">
@@ -307,46 +334,37 @@
 
 <script>
   const API = 'http://localhost:8080/api';
+
+  // ── Auth ─────────────────────────────────────────────────
   if (!sessionStorage.getItem('userId')) window.location.href = 'login.html';
   const _sid   = sessionStorage.getItem('userId');
   const _srole = sessionStorage.getItem('userRole');
-  // ── Role-based nav/sidebar hiding ──────────────────────────
-  (function applyRoleVisibility() {
-    const role = sessionStorage.getItem('userRole');
-    if (!role) return;
-
-    const rules = {
-      commuter: ['driver.html', 'admin.html', 'payments.html'],
-      driver:   ['commuter.html', 'admin.html', 'payments.html']
-      // admin sees everything — no rules
-    };
-
-    const hidden = rules[role] || [];
-    hidden.forEach(page => {
-      document.querySelectorAll(`a[href="${page}"]`).forEach(a => {
-        // hide the <li> if it's a nav link, else hide the <a> itself (sidebar)
-        const target = a.closest('li') || a;
-        target.style.display = 'none';
-      });
-    });
-  })();
   if (_srole !== 'commuter' && _srole !== 'admin') { alert('Access denied.'); window.location.href = 'login.html'; }
-
   if (_sid && _srole === 'commuter') document.getElementById('commuter-id').value = _sid;
-  
+
   const _avatar = document.querySelector('.avatar');
+  const _badge  = document.querySelector('.badge-role');
+  const userName = sessionStorage.getItem('userName') || '';
+  const userRole = sessionStorage.getItem('userRole') || '';
   if (_avatar) {
-    _avatar.style.cursor = 'pointer';
-    _avatar.title = 'Logout — ' + (sessionStorage.getItem('userName') || '');
+    _avatar.textContent = userName.split(' ').map(n => n[0]).join('').toUpperCase() || 'CM';
+    _avatar.title = userName + ' (' + userRole + ')';
     _avatar.onclick = () => { sessionStorage.clear(); window.location.href = 'login.html'; };
   }
-  const _badge = document.querySelector('.badge-role');
-  if (_badge) _badge.textContent = sessionStorage.getItem('userRole') || 'Guest';
+  if (_badge) _badge.textContent = userRole.charAt(0).toUpperCase() + userRole.slice(1);
 
-  let selectedPayment = 'UPI';
-  let baseFare = 50, perKm = 12;
-  let currentRideId = null;
+  function logout() { sessionStorage.clear(); window.location.href = 'login.html'; }
 
+  // ── State ────────────────────────────────────────────────
+  let selectedPayment     = 'UPI';
+  let baseFare            = 50, perKm = 12;
+  let currentRideId       = null;
+  let _pendingPaymentRideId = null;
+  let _pendingPaymentFare   = null;
+  let _panelPaymentMethod   = 'UPI';
+  let _pollingActive        = false;
+
+  // ── Vehicle / Payment selectors ──────────────────────────
   function selectVehicle(el, type, base, rate) {
     document.querySelectorAll('.vehicle-option').forEach(v => v.classList.remove('selected'));
     el.classList.add('selected');
@@ -361,11 +379,17 @@
     selectedPayment = method;
   }
 
+  function selectPanelPayment(el, method) {
+    document.querySelectorAll('#payment-panel .pay-opt').forEach(v => v.classList.remove('selected'));
+    el.classList.add('selected');
+    _panelPaymentMethod = method;
+  }
+
+  // ── Fare estimate ────────────────────────────────────────
   async function updateFare() {
     const pickup = document.getElementById('pickup-input').value;
     const drop   = document.getElementById('drop-input').value;
     const btn    = document.getElementById('book-btn');
-
     if (!pickup || !drop || pickup === drop) {
       document.getElementById('fare-dist-label').textContent = 'Distance (select route first)';
       document.getElementById('fare-dist-val').textContent = '—';
@@ -374,43 +398,40 @@
       btn.textContent = pickup === drop && pickup ? 'Pickup and drop cannot be the same' : 'Select route to continue';
       return;
     }
-
     try {
-      const res = await fetch(`${API}/rides/fare-estimate?pickup=${encodeURIComponent(pickup)}&drop=${encodeURIComponent(drop)}&vehicleType=sedan&baseFare=${baseFare}&perKm=${perKm}`);
+      const res  = await fetch(`${API}/rides/fare-estimate?pickup=${encodeURIComponent(pickup)}&drop=${encodeURIComponent(drop)}&baseFare=${baseFare}&perKm=${perKm}`);
       const data = await res.json();
-      const km = data.distanceKm;
-      const total = data.fare;
-      document.getElementById('fare-dist-label').textContent = `Distance (${km} km)`;
-      document.getElementById('fare-dist-val').textContent = '₹' + (perKm * km).toFixed(0);
-      document.getElementById('fare-total').textContent = '₹' + total.toFixed(0);
+      document.getElementById('fare-dist-label').textContent = `Distance (${data.distanceKm} km)`;
+      document.getElementById('fare-dist-val').textContent   = '₹' + (perKm * data.distanceKm).toFixed(0);
+      document.getElementById('fare-total').textContent      = '₹' + data.fare.toFixed(0);
       btn.disabled = false;
-      btn.textContent = `Book Ride — ₹${total.toFixed(0)} →`;
+      btn.textContent = `Book Ride — ₹${data.fare.toFixed(0)} →`;
     } catch(e) {
       document.getElementById('fare-total').textContent = '₹—';
       btn.disabled = true;
     }
   }
 
+  // ── Load places ──────────────────────────────────────────
   async function loadPlaces() {
     try {
-      const res = await fetch(`${API}/rides/places`);
+      const res    = await fetch(`${API}/rides/places`);
       const places = await res.json();
-      ['pickup-input', 'drop-input'].forEach(id => {
-        const sel = document.getElementById(id);
+      ['pickup-input','drop-input'].forEach(id => {
+        const sel   = document.getElementById(id);
         const label = id === 'pickup-input' ? 'Select pickup location' : 'Select drop location';
         sel.innerHTML = `<option value="">${label}</option>` +
           places.map(p => `<option value="${p}">${p}</option>`).join('');
       });
-    } catch(e) {
-      console.error('Could not load places:', e);
-    }
+    } catch(e) { console.error('Could not load places:', e); }
   }
 
+  // ── Step UI helper ───────────────────────────────────────
   function setStep(stepId, state, subText) {
-    const icon = document.getElementById(stepId + '-icon');
-    const sub  = document.getElementById(stepId + '-sub');
-    if (!icon) { console.error('Missing element: ' + stepId + '-icon'); return; }
-    icon.className = 'step-icon step-' + state;
+    const icon = document.getElementById('step-' + stepId + '-icon');
+    const sub  = document.getElementById('step-' + stepId + '-sub');
+    if (!icon) { console.error('Missing element: step-' + stepId + '-icon'); return; }
+    icon.className   = 'step-icon step-' + state;
     icon.textContent = state === 'done' ? '✓' : state === 'failed' ? '✕' : state === 'active' ? '◌' : icon.textContent;
     if (sub) sub.textContent = subText;
   }
@@ -418,111 +439,278 @@
   function resetBooking() {
     document.getElementById('booking-steps').classList.remove('visible');
     document.getElementById('ride-result').classList.remove('visible');
-    ['request','driver','start','end','pay'].forEach((s,i) => {
-      const icon = document.getElementById('step-'+s+'-icon');
-      icon.className = 'step-icon step-pending';
-      icon.textContent = i+1;
-      document.getElementById('step-'+s+'-sub').textContent = 'Waiting...';
+    document.getElementById('payment-panel').style.display = 'none';
+    ['request','driver','start','end','pay'].forEach((s, i) => {
+      const icon = document.getElementById('step-' + s + '-icon');
+      if (icon) { icon.className = 'step-icon step-pending'; icon.textContent = i + 1; }
+      const sub = document.getElementById('step-' + s + '-sub');
+      if (sub) sub.textContent = 'Waiting...';
     });
   }
 
+  // ── Polling ──────────────────────────────────────────────
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function pollRideStatus(rideId, targetStatus) {
+    _pollingActive = true;
+    while (_pollingActive) {
+      await delay(3000);
+      const res  = await fetch(`${API}/rides/${rideId}`);
+      const ride = await res.json();
+      if (ride.status === 'CANCELLED') { _pollingActive = false; throw new Error('Ride was cancelled'); }
+      if (ride.status === targetStatus) { _pollingActive = false; return ride; }
+    }
+  }
+
+  // ── handleRideComplete — shows payment panel ─────────────
+  async function handleRideComplete(rideId, driverName, pickup, drop, fare) {
+    setStep('end', 'done', `Ride completed — fare: ₹${fare}`);
+    setStep('pay', 'active', 'Awaiting your payment below...');
+
+    _pendingPaymentRideId = rideId;
+    _pendingPaymentFare   = fare;
+
+    document.getElementById('res-ride-id').textContent = '#' + rideId;
+    document.getElementById('res-driver').textContent  = driverName;
+    document.getElementById('res-route').textContent   = pickup + ' → ' + drop;
+    document.getElementById('res-fare').textContent    = '₹' + fare;
+    document.getElementById('res-payment').textContent = 'Pending';
+    document.getElementById('ride-result').classList.add('visible');
+    document.getElementById('cancel-btn').style.display = 'none';
+
+    document.getElementById('panel-fare-display').textContent = '₹' + fare;
+    document.getElementById('payment-panel').style.display    = 'block';
+
+    // reset pay-now button in case it was used before
+    const payBtn = document.getElementById('pay-now-btn');
+    payBtn.disabled    = false;
+    payBtn.textContent = 'Pay Now →';
+    document.getElementById('pay-status').style.display = 'none';
+
+    const btn = document.getElementById('book-btn');
+    btn.disabled    = true;
+    btn.textContent = 'Complete payment to book again';
+
+    loadHistory();
+  }
+
+  // ── processPaymentAndReset — called by Pay Now button ────
+  async function processPaymentAndReset() {
+    if (!_pendingPaymentRideId) return;
+
+    const payBtn    = document.getElementById('pay-now-btn');
+    const payStatus = document.getElementById('pay-status');
+    payBtn.disabled    = true;
+    payBtn.textContent = 'Processing...';
+
+    try {
+      const payRes  = await fetch(`${API}/payments/initiate?rideId=${_pendingPaymentRideId}&method=${_panelPaymentMethod}`, { method:'POST' });
+      const payment = await payRes.json();
+      await fetch(`${API}/payments/${payment.id}/process`, { method:'POST' });
+
+      document.getElementById('res-payment').textContent = _panelPaymentMethod + ' — Success ✓';
+      setStep('pay', 'done', `₹${_pendingPaymentFare} paid via ${_panelPaymentMethod}`);
+
+      payStatus.style.display = 'block';
+      payStatus.style.color   = 'var(--green)';
+      payStatus.textContent   = `✓ Payment of ₹${_pendingPaymentFare} successful via ${_panelPaymentMethod}`;
+      payBtn.textContent      = 'Paid ✓';
+
+      await delay(2000);
+
+      // Full reset
+      document.getElementById('payment-panel').style.display = 'none';
+      document.getElementById('ride-result').classList.remove('visible');
+      document.getElementById('booking-steps').classList.remove('visible');
+
+      const btn = document.getElementById('book-btn');
+      btn.disabled    = false;
+      btn.textContent = 'Book Ride →';
+
+      _pendingPaymentRideId = null;
+      _pendingPaymentFare   = null;
+      currentRideId         = null;
+
+      loadHistory();
+
+    } catch(e) {
+      payBtn.disabled    = false;
+      payBtn.textContent = 'Retry Payment';
+      payStatus.style.display = 'block';
+      payStatus.style.color   = 'var(--red)';
+      payStatus.textContent   = 'Payment failed — please try again.';
+    }
+  }
+
+  // ── bookRide ─────────────────────────────────────────────
   async function bookRide() {
     const commuterId = document.getElementById('commuter-id').value.trim();
     const pickup     = document.getElementById('pickup-input').value.trim();
     const drop       = document.getElementById('drop-input').value.trim();
 
-    if (!commuterId) { alert('Please enter your Commuter ID. Add yourself via Admin → Commuters first.'); return; }
-    if (!pickup || !drop) { alert('Please enter pickup and drop locations.'); return; }
+    if (!commuterId) { alert('Please enter your Commuter ID.'); return; }
+    if (!pickup || !drop) { alert('Please select pickup and drop locations.'); return; }
 
     const btn = document.getElementById('book-btn');
-    btn.disabled = true;
+    btn.disabled    = true;
     btn.textContent = 'Booking...';
 
     document.getElementById('booking-steps').classList.add('visible');
     document.getElementById('ride-result').classList.remove('visible');
+    document.getElementById('payment-panel').style.display = 'none';
     resetBooking();
+    document.getElementById('booking-steps').classList.add('visible');
 
     try {
-      // Step 1 — Request ride
       setStep('request', 'active', 'Creating ride request...');
-      const rideRes = await fetch(`${API}/rides/request?commuterId=${commuterId}&pickup=${encodeURIComponent(pickup)}&drop=${encodeURIComponent(drop)}`, { method:'POST' });
-      if (!rideRes.ok) { const e = await rideRes.text(); throw new Error('Request failed: ' + e); }
+      const rideRes = await fetch(
+        `${API}/rides/request?commuterId=${commuterId}&pickup=${encodeURIComponent(pickup)}&drop=${encodeURIComponent(drop)}`,
+        { method:'POST' }
+      );
+      if (!rideRes.ok) throw new Error('Request failed: ' + await rideRes.text());
       const ride = await rideRes.json();
-      setStep('request', 'done', `Ride #${ride.id} created`);
-      //Cancel button shown after ride is created
       currentRideId = ride.id;
+      setStep('request', 'done', `Ride #${ride.id} created`);
       document.getElementById('cancel-btn').style.display = 'block';
 
-      // Step 2 — Assign driver
-      setStep('driver', 'active', 'Finding nearest driver...');
-      await delay(800);
-      const assignRes = await fetch(`${API}/rides/${ride.id}/assign-driver`, { method:'POST' });
-      if (!assignRes.ok) throw new Error('No drivers available');
+      setStep('driver', 'active', 'Finding an available driver...');
+      const assignRes    = await fetch(`${API}/rides/${ride.id}/assign-driver`, { method:'POST' });
+      if (!assignRes.ok) throw new Error('Assignment failed');
       const assignedRide = await assignRes.json();
       if (assignedRide.status === 'CANCELLED') {
-        setStep('driver', 'failed', 'No drivers available — ride cancelled');
+        setStep('driver', 'failed', 'No drivers available — try again');
         btn.disabled = false; btn.textContent = 'Try Again →';
+        document.getElementById('cancel-btn').style.display = 'none';
         return;
       }
       const driverName = assignedRide.driver ? assignedRide.driver.name : 'Unknown';
       setStep('driver', 'done', `Driver ${driverName} assigned`);
 
-      // Step 3 — Start ride
-      setStep('start', 'active', 'Driver en route to pickup...');
-      await delay(900);
-      await fetch(`${API}/rides/${ride.id}/start`, { method:'POST' });
-      setStep('start', 'done', 'Ride started');
+      setStep('start', 'active', `Waiting for ${driverName} to accept...`);
+      btn.textContent = 'Waiting for driver to accept...';
+      await pollRideStatus(ride.id, 'IN_PROGRESS');
+      setStep('start', 'done', 'Driver accepted — ride in progress');
 
-      // Step 4 — End ride
-      setStep('end', 'active', 'Completing ride...');
-      await delay(900);
-      const endRes = await fetch(`${API}/rides/${ride.id}/end`, { method:'POST' });
-      const completedRide = await endRes.json();
-      setStep('end', 'done', `Fare calculated: ₹${completedRide.fare}`);
+      setStep('end', 'active', 'Ride in progress — waiting for driver to complete...');
+      btn.textContent = 'Ride in progress...';
+      const completedRide = await pollRideStatus(ride.id, 'COMPLETED');
 
-      // Step 5 — Payment
-      setStep('pay', 'active', `Processing ${selectedPayment} payment...`);
-      await delay(700);
-      const payRes  = await fetch(`${API}/payments/initiate?rideId=${ride.id}&method=${selectedPayment}`, { method:'POST' });
-      const payment = await payRes.json();
-      await fetch(`${API}/payments/${payment.id}/process`, { method:'POST' });
-      setStep('pay', 'done', `₹${completedRide.fare} paid via ${selectedPayment}`);
+      await handleRideComplete(ride.id, driverName, pickup, drop, completedRide.fare);
 
-      // Show result
-      document.getElementById('res-ride-id').textContent = '#' + ride.id;
-      document.getElementById('res-driver').textContent = driverName;
-      document.getElementById('res-route').textContent = pickup + ' → ' + drop;
-      document.getElementById('res-fare').textContent = '₹' + completedRide.fare;
-      document.getElementById('res-payment').textContent = selectedPayment + ' — Success';
-      document.getElementById('ride-result').classList.add('visible');
-
-      document.getElementById('cancel-btn').style.display = 'none';
-
-      btn.textContent = 'Book Another Ride →';
-      btn.disabled = false;
-
-      // Reload history
-      loadHistory();
-
-    } catch (err) {
-      btn.disabled = false;
+    } catch(err) {
+      _pollingActive = false;
+      btn.disabled    = false;
       btn.textContent = 'Retry →';
-      alert('Error: ' + err.message + '\n\nMake sure the Spring Boot server is running at localhost:8080 and the Commuter ID exists.');
+      document.getElementById('cancel-btn').style.display = 'none';
+      alert('Error: ' + err.message);
     }
   }
 
+  // ── resumeActiveRide ─────────────────────────────────────
+  async function resumeActiveRide() {
+    const commuterId = document.getElementById('commuter-id').value.trim();
+    if (!commuterId) return;
+    try {
+      const res   = await fetch(`${API}/rides/commuter/${commuterId}`);
+      const rides = await res.json();
+      const active = rides.slice().reverse().find(r =>
+        ['REQUESTED','DRIVER_ASSIGNED','IN_PROGRESS','COMPLETED'].includes(r.status)
+      );
+      if (!active) return;
+
+      currentRideId = active.id;
+      const btn = document.getElementById('book-btn');
+      btn.disabled = true;
+      document.getElementById('cancel-btn').style.display = 'block';
+      document.getElementById('booking-steps').classList.add('visible');
+      document.getElementById('ride-result').classList.remove('visible');
+      const driverName = active.driver ? active.driver.name : 'Unknown';
+
+      if (active.status === 'COMPLETED') {
+        try {
+          const payCheck = await fetch(`${API}/payments/ride/${active.id}`);
+          if (payCheck.ok) {
+            const pmts = await payCheck.json();
+            if (pmts.length > 0) {
+              // Already paid — clean reset
+              document.getElementById('booking-steps').classList.remove('visible');
+              document.getElementById('cancel-btn').style.display = 'none';
+              currentRideId = null;
+              btn.disabled = false; btn.textContent = 'Book Ride →';
+              return;
+            }
+          }
+        } catch(e) { /* show payment panel anyway */ }
+        setStep('request', 'done', `Ride #${active.id} created`);
+        setStep('driver',  'done', `Driver ${driverName} assigned`);
+        setStep('start',   'done', 'Driver accepted — ride in progress');
+        await handleRideComplete(active.id, driverName, active.pickupLocation, active.dropLocation, active.fare);
+        return;
+      }
+
+      if (active.status === 'IN_PROGRESS') {
+        setStep('request', 'done', `Ride #${active.id} created`);
+        setStep('driver',  'done', `Driver ${driverName} assigned`);
+        setStep('start',   'done', 'Driver accepted — ride is in progress');
+        setStep('end',     'active', 'Ride in progress — waiting for driver to complete...');
+        btn.textContent = 'Ride in progress...';
+        const completed = await pollRideStatus(active.id, 'COMPLETED');
+        await handleRideComplete(active.id, driverName, active.pickupLocation, active.dropLocation, completed.fare);
+        return;
+      }
+
+      if (active.status === 'DRIVER_ASSIGNED') {
+        setStep('request', 'done', `Ride #${active.id} created`);
+        setStep('driver',  'done', `Driver ${driverName} assigned`);
+        setStep('start',   'active', `Waiting for ${driverName} to accept...`);
+        btn.textContent = 'Waiting for driver to accept...';
+        await pollRideStatus(active.id, 'IN_PROGRESS');
+        setStep('start', 'done', 'Driver accepted — ride is in progress');
+        setStep('end',   'active', 'Ride in progress — waiting for driver to complete...');
+        btn.textContent = 'Ride in progress...';
+        const completed = await pollRideStatus(active.id, 'COMPLETED');
+        await handleRideComplete(active.id, driverName, active.pickupLocation, active.dropLocation, completed.fare);
+        return;
+      }
+
+      if (active.status === 'REQUESTED') {
+        setStep('request', 'done', `Ride #${active.id} created`);
+        setStep('driver',  'active', 'Finding an available driver...');
+        btn.textContent = 'Finding driver...';
+        const assignRes    = await fetch(`${API}/rides/${active.id}/assign-driver`, { method:'POST' });
+        const assignedRide = await assignRes.json();
+        if (assignedRide.status === 'CANCELLED') {
+          setStep('driver', 'failed', 'No drivers available');
+          btn.disabled = false; btn.textContent = 'Try Again →';
+          document.getElementById('cancel-btn').style.display = 'none';
+          return;
+        }
+        const name = assignedRide.driver ? assignedRide.driver.name : 'Unknown';
+        setStep('driver', 'done', `Driver ${name} assigned`);
+        setStep('start',  'active', `Waiting for ${name} to accept...`);
+        btn.textContent = 'Waiting for driver to accept...';
+        await pollRideStatus(active.id, 'IN_PROGRESS');
+        setStep('start', 'done', 'Driver accepted — ride is in progress');
+        setStep('end',   'active', 'Ride in progress — waiting for driver to complete...');
+        btn.textContent = 'Ride in progress...';
+        const completed = await pollRideStatus(active.id, 'COMPLETED');
+        await handleRideComplete(active.id, name, active.pickupLocation, active.dropLocation, completed.fare);
+        return;
+      }
+
+    } catch(e) { console.error('resumeActiveRide error:', e); }
+  }
+
+  // ── History ──────────────────────────────────────────────
   async function loadHistory() {
     const commuterId = document.getElementById('commuter-id').value.trim();
     const list = document.getElementById('history-list');
-    if (!commuterId) {
-      list.innerHTML = '<div class="history-empty">Enter your Commuter ID above and click Refresh.</div>';
-      return;
-    }
+    if (!commuterId) { list.innerHTML = '<div class="history-empty">Enter your Commuter ID above and click Refresh.</div>'; return; }
     list.innerHTML = '<div class="history-empty">Loading...</div>';
     try {
-      const res = await fetch(`${API}/rides/commuter/${commuterId}`);
+      const res   = await fetch(`${API}/rides/commuter/${commuterId}`);
       const rides = await res.json();
-      if (!rides.length) { list.innerHTML = '<div class="history-empty">No rides yet for this commuter.</div>'; return; }
+      if (!rides.length) { list.innerHTML = '<div class="history-empty">No rides yet.</div>'; return; }
       const statusColors = { COMPLETED:'var(--green)', CANCELLED:'var(--red)', IN_PROGRESS:'var(--accent2)', REQUESTED:'var(--amber)', DRIVER_ASSIGNED:'#5eead4' };
       list.innerHTML = rides.slice().reverse().map(r => `
         <div class="history-item">
@@ -533,59 +721,36 @@
             <div class="history-route">${r.pickupLocation} → ${r.dropLocation}</div>
             <div class="history-meta">
               <span class="status-dot" style="background:${statusColors[r.status]||'var(--muted)'}"></span>
-              ${r.status.replace('_',' ')} · Ride #${r.id}
+              ${r.status.replace(/_/g,' ')} · Ride #${r.id}
             </div>
           </div>
           <div class="history-fare">${r.fare ? '₹'+r.fare : '—'}</div>
-        </div>
-      `).join('');
-    } catch(e) {
-      list.innerHTML = '<div class="history-empty">Could not load — is the server running?</div>';
-    }
+        </div>`).join('');
+    } catch(e) { list.innerHTML = '<div class="history-empty">Could not load — is the server running?</div>'; }
   }
 
+  // ── Cancel ───────────────────────────────────────────────
   async function cancelRide() {
     if (!currentRideId) return;
     if (!confirm('Cancel this ride?')) return;
+    _pollingActive = false;
     try {
-      await fetch(`${API}/rides/${currentRideId}/cancel`, { method: 'POST' });
+      await fetch(`${API}/rides/${currentRideId}/cancel`, { method:'POST' });
       document.getElementById('cancel-btn').style.display = 'none';
       document.getElementById('booking-steps').classList.remove('visible');
+      document.getElementById('payment-panel').style.display = 'none';
       const btn = document.getElementById('book-btn');
-      btn.disabled = false;
-      btn.textContent = 'Book Ride →';
+      btn.disabled = false; btn.textContent = 'Book Ride →';
+      currentRideId = null;
       alert('Ride cancelled.');
       loadHistory();
-    } catch(e) {
-      alert('Could not cancel ride.');
-    }
+    } catch(e) { alert('Could not cancel ride.'); }
   }
 
-  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-  // Init fare display
+  // ── Init ─────────────────────────────────────────────────
   loadPlaces();
   updateFare();
-</script>
-<script>
-  // Redirect to login if not authenticated
-  if (!sessionStorage.getItem('userId')) {
-    window.location.href = 'login.html';
-  }
-
-  // Show user name in nav
-  const userName = sessionStorage.getItem('userName');
-  const userRole = sessionStorage.getItem('userRole');
-  const avatarEl = document.querySelector('.avatar');
-  if (avatarEl && userName) {
-    avatarEl.textContent = userName.split(' ').map(n => n[0]).join('').toUpperCase();
-    avatarEl.title = userName + ' (' + userRole + ')';
-  }
-
-  function logout() {
-    sessionStorage.clear();
-    window.location.href = 'login.html';
-  }
+  resumeActiveRide();
 </script>
 </body>
 </html>
